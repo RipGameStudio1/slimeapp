@@ -9,9 +9,6 @@ function initUserData() {
         const usernameElement = document.querySelector('.username');
         usernameElement.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
         
-        const userIdElement = document.querySelector('.user-id');
-        userIdElement.textContent = `ID: ${user.id}`;
-        
         const avatarElement = document.querySelector('.avatar');
         const userId = user.id;
         const photoUrl = `https://cdn4.telegram-cdn.org/file/user${userId}.jpg`;
@@ -169,8 +166,6 @@ class FarmingSystem {
         this.startTime = null;
         this.lastUpdate = null;
         this.userId = null;
-        this.lastSaveTime = Date.now();
-        this.saveInterval = 1000;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
@@ -245,7 +240,9 @@ class FarmingSystem {
             this.button.insertBefore(progressBar, this.buttonContent);
         }
 
-        this.farmingRate = this.rewardAmount / this.farmingDuration;
+        const progressBar = this.button.querySelector('.farming-progress');
+        const progress = (elapsedTime / this.farmingDuration) * 100;
+        progressBar.style.width = `${progress}%`;
 
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
@@ -257,25 +254,27 @@ class FarmingSystem {
                 return;
             }
 
-            const earnedAmount = (this.farmingRate * deltaTime) * this.levelSystem.multiplier;
+            const earnRate = this.rewardAmount / this.farmingDuration;
+            const earnedAmount = (earnRate * deltaTime) * this.levelSystem.multiplier;
             this.limeAmount += earnedAmount;
             this.updateLimeDisplay();
             this.levelSystem.addXp(earnedAmount * 10);
 
-            if (now - this.lastSaveTime >= this.saveInterval) {
-                this.saveUserData();
-                this.lastSaveTime = now;
-            }
-
-            this.updateProgress(this.farmingDuration - currentElapsed);
+            const progress = (currentElapsed / this.farmingDuration) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
             this.lastUpdate = now;
-        }, 50);
+            
+            this.saveUserData();
+        }, 1000);
     }
 
     startFarming() {
         this.isActive = true;
         this.farmingCount++;
         this.startTime = Date.now();
+        this.limeAmount = 0; // Сбрасываем баланс при начале нового фарминга
         this.resumeFarming(0);
         this.saveUserData();
         showToast('Farming started! Come back in 5 hours');
@@ -295,15 +294,6 @@ class FarmingSystem {
 
         this.saveUserData();
         showToast('Farming completed!');
-    }
-
-    updateProgress(remainingTime) {
-        const progressBar = this.button.querySelector('.farming-progress');
-        const progressPercent = 100 - (remainingTime / this.farmingDuration * 100);
-        const timeString = this.formatTime(remainingTime);
-
-        progressBar.style.width = `${progressPercent}%`;
-        this.buttonContent.textContent = `Farming: ${timeString}`;
     }
 
     formatTime(ms) {
@@ -376,12 +366,6 @@ class FarmingSystem {
                 this.saveUserData();
             }
         });
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden' && this.isActive) {
-                this.saveUserData();
-            }
-        });
     }
 }
 
@@ -411,7 +395,7 @@ function hideLoadingIndicator() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     initUserData();
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
