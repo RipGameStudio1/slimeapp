@@ -48,6 +48,7 @@ class LevelSystem {
         this.multiplier = 1;
         this.levelElement = document.getElementById('level');
         this.speedElement = document.getElementById('speed');
+        this.farmingTimeout = null; 
         this.progressElement = document.getElementById('level-progress');
     }
 
@@ -286,7 +287,7 @@ class FarmingSystem {
         }
     }
     resumeFarming(elapsedTime) {
-        // Очищаем существующие интервалы, если они есть
+        // Очищаем существующие интервалы
         if (this.farmingInterval) {
             clearInterval(this.farmingInterval);
             this.farmingInterval = null;
@@ -295,30 +296,45 @@ class FarmingSystem {
             clearInterval(this.saveInterval);
             this.saveInterval = null;
         }
-
+    
+        // Если прошло больше времени чем длительность фарминга, сразу завершаем
+        if (elapsedTime >= this.farmingDuration) {
+            this.completeFarming();
+            return;
+        }
+    
         this.isActive = true;
         this.button.classList.add('disabled');
         this.lastUpdate = Date.now();
-
+    
         if (!this.button.querySelector('.farming-progress')) {
             const progressBar = document.createElement('div');
             progressBar.classList.add('farming-progress');
             this.button.insertBefore(progressBar, this.buttonContent);
         }
-
+    
         const progressBar = this.button.querySelector('.farming-progress');
         const progress = (elapsedTime / this.farmingDuration) * 100;
         progressBar.style.width = `${progress}%`;
-
+    
+        // Вычисляем оставшееся время
+        const remainingTime = this.farmingDuration - elapsedTime;
+        
+        // Устанавливаем таймер на точное время завершения
+        this.farmingTimeout = setTimeout(() => {
+            this.completeFarming();
+        }, remainingTime);
+    
+        // Интервал только для обновления UI
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
             const currentElapsed = now - this.startTime;
             
             if (currentElapsed >= this.farmingDuration) {
-                this.completeFarming();
+                clearInterval(this.farmingInterval);
                 return;
             }
-
+    
             const earnRate = this.rewardAmount / this.farmingDuration;
             const totalEarned = earnRate * currentElapsed;
             
@@ -326,13 +342,13 @@ class FarmingSystem {
             
             this.updateLimeDisplay();
             this.levelSystem.addXp(totalEarned * 0.1);
-
+    
             const progress = (currentElapsed / this.farmingDuration) * 100;
             progressBar.style.width = `${progress}%`;
             
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
         }, 50);
-
+    
         // Сохраняем данные реже
         this.saveInterval = setInterval(() => {
             if (this.isActive) {
@@ -340,7 +356,6 @@ class FarmingSystem {
             }
         }, 5000);
     }
-
     startFarming() {
         this.isActive = true;
         this.farmingCount++;
@@ -353,8 +368,8 @@ class FarmingSystem {
     completeFarming() {
         // Проверяем, не был ли уже завершен фарминг
         if (!this.isActive) return;
-
-        // Очищаем все интервалы
+    
+        // Очищаем все таймеры и интервалы
         if (this.farmingInterval) {
             clearInterval(this.farmingInterval);
             this.farmingInterval = null;
@@ -362,6 +377,10 @@ class FarmingSystem {
         if (this.saveInterval) {
             clearInterval(this.saveInterval);
             this.saveInterval = null;
+        }
+        if (this.farmingTimeout) {
+            clearTimeout(this.farmingTimeout);
+            this.farmingTimeout = null;
         }
         
         const totalElapsed = Date.now() - this.startTime;
@@ -378,7 +397,7 @@ class FarmingSystem {
         if (progressBar) {
             progressBar.remove();
         }
-
+    
         // Сохраняем данные только один раз
         this.saveUserData(this.limeAmount).then(() => {
             showToast('Farming completed!');
