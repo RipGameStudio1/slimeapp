@@ -159,7 +159,7 @@ class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
         this.buttonContent = document.querySelector('.farming-button-content');
-        this.farmingDuration = 5 * 60 * 60 * 1000;
+        this.farmingDuration = 30 * 1000;
         this.rewardAmount = 70;
         this.isActive = false;
         this.limeAmount = 0;
