@@ -88,7 +88,6 @@ class LevelSystem {
         this.progressElement.style.width = `${progress}%`;
     }
 }
-
 class AchievementSystem {
     constructor() {
         this.achievements = {
@@ -182,7 +181,6 @@ class FarmingSystem {
             await this.loadUserData();
         }
     }
-
     async loadUserData() {
         showLoadingIndicator();
         try {
@@ -268,26 +266,38 @@ class FarmingSystem {
             progressBar.style.width = `${progress}%`;
             
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
-            
         }, 50);
 
         this.saveInterval = setInterval(() => {
-            this.saveUserData();
+            if (this.isActive) {
+                const now = Date.now();
+                const currentElapsed = now - this.startTime;
+                const earnRate = this.rewardAmount / this.farmingDuration;
+                const totalEarned = earnRate * currentElapsed;
+                
+                this.saveUserData(this.baseAmount + totalEarned);
+            }
         }, 5000);
     }
-
     startFarming() {
         this.isActive = true;
         this.farmingCount++;
         this.startTime = Date.now();
+        this.baseAmount = this.limeAmount;
         this.resumeFarming(0);
-        this.saveUserData();
+        this.saveUserData(this.limeAmount);
         showToast('Farming started! Come back in 5 hours');
     }
 
     completeFarming() {
         clearInterval(this.farmingInterval);
         clearInterval(this.saveInterval);
+        
+        const totalElapsed = Date.now() - this.startTime;
+        const earnRate = this.rewardAmount / this.farmingDuration;
+        const totalEarned = earnRate * Math.min(totalElapsed, this.farmingDuration);
+        this.limeAmount = this.baseAmount + totalEarned;
+        
         this.isActive = false;
         this.startTime = null;
         this.button.classList.remove('disabled');
@@ -298,7 +308,7 @@ class FarmingSystem {
             progressBar.remove();
         }
 
-        this.saveUserData();
+        this.saveUserData(this.limeAmount);
         showToast('Farming completed!');
     }
 
@@ -321,7 +331,7 @@ class FarmingSystem {
         limeAmountElement.textContent = formattedNumber;
     }
 
-    async saveUserData() {
+    async saveUserData(exactAmount = null) {
         if (!this.userId) return;
         
         try {
@@ -331,7 +341,7 @@ class FarmingSystem {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    limeAmount: this.limeAmount,
+                    limeAmount: exactAmount !== null ? exactAmount : this.limeAmount,
                     farmingCount: this.farmingCount,
                     isActive: this.isActive,
                     startTime: this.startTime ? new Date(this.startTime) : null,
@@ -369,7 +379,7 @@ class FarmingSystem {
 
         window.addEventListener('beforeunload', () => {
             if (this.isActive) {
-                this.saveUserData();
+                this.saveUserData(this.limeAmount);
             }
         });
     }
