@@ -198,7 +198,11 @@ class FarmingSystem {
             this.limeAmount = parseFloat(userData.limeAmount) || 0;
             this.farmingCount = userData.farmingCount || 0;
             this.isActive = userData.isActive || false;
-            this.lastUpdate = userData.startTime ? new Date(userData.startTime).getTime() : null;
+            
+            // Изменяем обработку времени
+            if (userData.startTime) {
+                this.lastUpdate = new Date(userData.startTime).getTime();
+            }
             
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
@@ -210,24 +214,14 @@ class FarmingSystem {
                 }
             });
             
-            // Обработка офлайн-прогресса
-            if (this.isActive && this.lastUpdate) {
-                const now = Date.now();
-                const offlineTime = now - this.lastUpdate;
-                
-                if (offlineTime > 0) {
-                    const totalEarned = this.calculateOfflineEarnings(offlineTime);
-                    this.limeAmount += totalEarned;
-                    showToast(`Earned while away: ${totalEarned.toFixed(5)} $lime`);
-                }
-            }
-            
             this.updateLimeDisplay();
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
             
-            if (this.isActive) {
-                const elapsedTime = Date.now() - this.lastUpdate;
+            if (this.isActive && this.lastUpdate) {
+                const now = Date.now();
+                const elapsedTime = now - this.lastUpdate;
+                
                 if (elapsedTime < this.farmingDuration) {
                     this.startFarming(elapsedTime);
                 } else {
@@ -260,11 +254,14 @@ class FarmingSystem {
             this.button.insertBefore(progressBar, this.buttonContent);
         }
 
+        // Если это новый старт фарминга (не восстановление после перезагрузки)
+        if (elapsedTime === 0) {
+            this.lastUpdate = Date.now();
+        }
+        
         const startTime = Date.now() - elapsedTime;
-        this.lastUpdate = startTime;
         this.farmingRate = this.rewardAmount / this.farmingDuration;
 
-        // Немедленное сохранение при старте фарминга
         this.saveUserData();
 
         this.farmingInterval = setInterval(() => {
@@ -276,7 +273,6 @@ class FarmingSystem {
             this.updateLimeDisplay();
             this.levelSystem.addXp(earnedAmount * 10);
             
-            // Сохранение каждую секунду
             if (currentTime - this.lastSaveTime >= this.saveInterval) {
                 this.saveUserData();
                 this.lastSaveTime = currentTime;
@@ -310,7 +306,7 @@ class FarmingSystem {
                     limeAmount: this.limeAmount,
                     farmingCount: this.farmingCount,
                     isActive: this.isActive,
-                    startTime: this.lastUpdate,
+                    startTime: this.lastUpdate ? new Date(this.lastUpdate) : null,
                     level: this.levelSystem.level,
                     xp: this.levelSystem.xp,
                     achievements: Object.keys(this.achievementSystem.achievements).reduce((acc, key) => {
