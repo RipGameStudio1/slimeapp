@@ -8,18 +8,14 @@ function initUserData() {
         const usernameElement = document.querySelector('.username');
         usernameElement.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
         
-        // Обновляем аватар
+        // Обновляем аватар используя прямую ссылку на Telegram CDN
         const avatarElement = document.querySelector('.avatar');
-        avatarElement.style.backgroundImage = `url(${user.photo_url})`;
+        const userId = user.id;
+        const photoUrl = `https://cdn4.telegram-cdn.org/file/user${userId}.jpg`;
+        
+        avatarElement.style.backgroundImage = `url(${photoUrl})`;
         avatarElement.style.backgroundSize = 'cover';
         avatarElement.style.backgroundPosition = 'center';
-        
-        // Включаем отображение аватара в настройках WebApp
-        tg.expand();
-        tg.enableClosingConfirmation();
-        tg.MainButton.setParams({
-            text_color: '#FFFFFF'
-        });
     }
 }
 
