@@ -58,6 +58,12 @@ body {
     margin-bottom: 4px;
 }
 
+.user-id {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+}
+
 .user-status {
     font-size: 14px;
     color: #636e72;
@@ -77,6 +83,7 @@ body {
 .theme-toggle:hover {
     background: rgba(0, 0, 0, 0.05);
 }
+
 .main-content {
     text-align: center;
     margin-top: 30px;
@@ -90,18 +97,11 @@ body {
     margin-bottom: 15px;
 }
 
-.user-id {
-    font-size: 12px;
-    color: #666;
-    margin-top: 2px;
-}
-
 .lime-amount {
     font-size: 24px;
     color: #636e72;
     font-weight: 500;
 }
-
 .stats-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -189,6 +189,7 @@ body {
     font-size: 12px;
     color: #666;
 }
+
 .farming-button {
     position: fixed;
     bottom: 100px;
@@ -263,6 +264,7 @@ body {
     transform: translateX(-50%) translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
+
 .navigation {
     position: fixed;
     bottom: 20px;
@@ -303,10 +305,6 @@ body {
     font-size: 10px;
 }
 
-.nav-item:hover i {
-    transform: translateY(-2px);
-}
-
 .nav-item::before {
     content: '';
     position: absolute;
@@ -318,9 +316,12 @@ body {
     transition: width 0.3s ease;
 }
 
-/* Базовое правило для ширины линии при наведении */
 .nav-item:hover::before {
     width: 100%;
+}
+
+.nav-item:hover i {
+    transform: translateY(-2px);
 }
 
 /* Специфичные цвета для каждой кнопки */
@@ -331,11 +332,11 @@ body {
 .nav-item[data-section="nft"]::before { background: #FF5722; }
 
 /* Цвета иконок при наведении */
-.nav-item:hover i.fa-home { color: #4CAF50; }
-.nav-item:hover i.fa-gamepad { color: #2196F3; }
-.nav-item:hover i.fa-shopping-cart { color: #FFC107; }
-.nav-item:hover i.fa-users { color: #9C27B0; }
-.nav-item:hover i.fa-cube { color: #FF5722; } 
+.nav-item[data-section="main"]:hover i { color: #4CAF50; }
+.nav-item[data-section="play"]:hover i { color: #2196F3; }
+.nav-item[data-section="shop"]:hover i { color: #FFC107; }
+.nav-item[data-section="referrals"]:hover i { color: #9C27B0; }
+.nav-item[data-section="nft"]:hover i { color: #FF5722; }
 
 /* Анимация пульсации для активной иконки */
 @keyframes pulseIcon {
@@ -352,6 +353,7 @@ body {
     background: var(--primary-color);
     color: white;
 }
+
 .toast {
     position: fixed;
     top: 20px;
@@ -416,20 +418,6 @@ body {
     background: rgba(255, 255, 255, 0.1);
 }
 
-@media (max-width: 480px) {
-    .nav-item {
-        padding: 8px 10px; /* Уменьшаем отступы для лучшего размещения */
-    }
-    
-    .nav-item i {
-        font-size: 16px;
-    }
-    
-    .nav-item span {
-        font-size: 8px;
-    }
-}
-
 /* Медиа-запросы для адаптивности */
 @media (max-width: 480px) {
     .container {
@@ -479,7 +467,7 @@ body {
     }
 
     .nav-item {
-        padding: 8px 12px;
+        padding: 8px 10px;
     }
 
     .nav-item i {
@@ -487,7 +475,7 @@ body {
     }
 
     .nav-item span {
-        font-size: 9px;
+        font-size: 8px;
     }
 
     .toast {
@@ -508,4 +496,45 @@ body {
                 color 0.3s ease,
                 border-color 0.3s ease,
                 box-shadow 0.3s ease;
+}
+
+/* Стили для индикатора загрузки */
+#loading-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Дополнительные стили для темной темы */
+[data-theme="dark"] .loading-spinner {
+    border-color: #333;
+    border-top-color: var(--primary-color);
+}
+
+[data-theme="dark"] #loading-indicator {
+    background: rgba(0, 0, 0, 0.8);
 }
