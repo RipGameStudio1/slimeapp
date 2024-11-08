@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lime App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="slime-background"></div>
+    <div class="container">
+        <div class="header">
+                        <div class="avatar"></div>
+                        <div class="user-info">
+                                <div class="username"></div>
+                                <div class="user-status">Online</div>
+                        </div>
+                        <button class="theme-toggle">
+                                <i class="fas fa-moon"></i>
+                        </button>
+                </div>
+
+        <div class="main-content">
+            <div class="lime-title">$lime</div>
+            <div class="lime-amount">0.00000</div>
+            
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-title">Level</div>
+                    <div class="stat-value" id="level">1</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="level-progress"></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Farming Speed</div>
+                    <div class="stat-value" id="speed">1x</div>
+                </div>
+            </div>
+
+            <div class="achievements-row">
+                <div class="achievement-card" data-id="first-farm">
+                    <i class="fas fa-seedling"></i>
+                    <div class="achievement-title">First Steps</div>
+                    <div class="achievement-desc">Complete first farming</div>
+                </div>
+                <div class="achievement-card" data-id="speed-demon">
+                    <i class="fas fa-bolt"></i>
+                    <div class="achievement-title">Speed Demon</div>
+                    <div class="achievement-desc">Reach 2x speed</div>
+                </div>
+                <div class="achievement-card" data-id="millionaire">
+                    <i class="fas fa-gem"></i>
+                    <div class="achievement-title">Millionaire</div>
+                    <div class="achievement-desc">Get 1,000,000 $lime</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="farming-button">
+            <span class="farming-button-content">Start Farming</span>
+        </button>
+
+        <nav class="navigation">
+            <a href="#" class="nav-item" data-section="main">
+                <i class="fas fa-home"></i>
+                <span>Main</span>
+            </a>
+            <a href="#" class="nav-item" data-section="play">
+                <i class="fas fa-gamepad"></i>
+                <span>Play</span>
+            </a>
+                        <a href="#" class="nav-item" data-section="referrals">
+                                <i class="fas fa-users"></i>
+                                <span>Referrals</span>
+                        </a>
+            <a href="#" class="nav-item" data-section="shop">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Shop</span>
+            </a>
+        </nav>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,488 @@
+:root {
+    --primary-color: #4A90E2;
+    --accent-color: #FFD700;
+    --background-color: #f8f9fa;
+    --text-color: #333333;
+    --nav-bg: rgba(255, 255, 255, 0.95);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    background: var(--background-color);
+    min-height: 100vh;
+    color: var(--text-color);
+    transition: background-color 0.3s ease;
+}
+
+.container {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    padding: 20px;
+    padding-bottom: 180px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: transparent;
+    margin-bottom: 30px;
+}
+
+.avatar {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 3px solid white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.user-info {
+    flex-grow: 1;
+}
+
+.username {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.user-status {
+    font-size: 14px;
+    color: #636e72;
+}
+
+.theme-toggle {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+.main-content {
+    text-align: center;
+    margin-top: 30px;
+    padding: 30px 0;
+}
+
+.lime-title {
+    font-size: 52px;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 15px;
+}
+
+.lime-amount {
+    font-size: 24px;
+    color: #636e72;
+    font-weight: 500;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    padding: 15px;
+    text-align: left;
+    background: transparent;
+}
+
+.stat-title {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 8px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(0,0,0,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent-color);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.achievements-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 0;
+    margin-top: 20px;
+    scrollbar-width: none;
+}
+
+.achievements-row::-webkit-scrollbar {
+    display: none;
+}
+
+.achievement-card {
+    min-width: 120px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    text-align: center;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.achievement-card.completed {
+    opacity: 1;
+    border-color: var(--accent-color);
+}
+
+.achievement-card i {
+    font-size: 24px;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.achievement-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.achievement-desc {
+    font-size: 12px;
+    color: #666;
+}
+.farming-button {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 440px;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--accent-color);
+    border: none;
+    color: var(--text-color);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    overflow: hidden;
+}
+
+.farming-progress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    transition: width 0.3s linear;
+}
+
+.farming-progress::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.farming-button-content {
+    position: relative;
+    z-index: 2;
+}
+
+.farming-button.disabled {
+    background: var(--accent-color);
+    opacity: 0.8;
+    cursor: default;
+}
+
+.farming-button:hover:not(.disabled) {
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.navigation {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 440px;
+    backdrop-filter: blur(10px);
+    background: var(--nav-bg);
+    padding: 8px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+    height: 65px;
+}
+
+.nav-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+    padding: 8px 12px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.nav-item i {
+    font-size: 18px;
+    margin-bottom: 3px;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.nav-item span {
+    font-size: 10px;
+}
+
+.nav-item:hover i {
+    transform: translateY(-2px);
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Базовое правило для ширины линии при наведении */
+.nav-item:hover::before {
+    width: 100%;
+}
+
+/* Специфичные цвета для каждой кнопки */
+.nav-item[data-section="main"]::before { background: #4CAF50; }
+.nav-item[data-section="play"]::before { background: #2196F3; }
+.nav-item[data-section="shop"]::before { background: #FFC107; }
+.nav-item[data-section="referrals"]::before { background: #9C27B0; }
+
+/* Цвета иконок при наведении */
+.nav-item:hover i.fa-home { color: #4CAF50; }
+.nav-item:hover i.fa-gamepad { color: #2196F3; }
+.nav-item:hover i.fa-shopping-cart { color: #FFC107; }
+.nav-item:hover i.fa-users { color: #9C27B0; }
+
+/* Анимация пульсации для активной иконки */
+@keyframes pulseIcon {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.nav-item.active i {
+    animation: pulseIcon 1.5s ease infinite;
+}
+
+.nav-item.active {
+    background: var(--primary-color);
+    color: white;
+}
+.toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: var(--primary-color);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+@keyframes numberChange {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.number-change {
+    animation: numberChange 0.3s ease-out;
+}
+
+@keyframes achievementUnlock {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.05); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+.achievement-card.completed {
+    animation: achievementUnlock 0.5s ease-out;
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+    --background-color: #1a1a1a;
+    --text-color: #ffffff;
+    --nav-bg: rgba(26, 26, 26, 0.95);
+}
+
+[data-theme="dark"] .achievement-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .farming-button.disabled {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+/* Медиа-запросы для адаптивности */
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+
+    .header {
+        padding: 15px;
+    }
+
+    .lime-title {
+        font-size: 42px;
+    }
+
+    .lime-amount {
+        font-size: 20px;
+    }
+
+    .stats-container {
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .achievement-card {
+        min-width: 100px;
+        padding: 12px;
+    }
+
+    .achievement-card i {
+        font-size: 20px;
+    }
+
+    .farming-button {
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    .navigation {
+        padding: 8px;
+    }
+
+    .nav-item {
+        padding: 8px 12px;
+    }
+
+    .nav-item i {
+        font-size: 16px;
+    }
+
+    .nav-item span {
+        font-size: 9px;
+    }
+
+    .toast {
+        font-size: 12px;
+        padding: 10px 20px;
+    }
+}
+
+/* Дополнительные эффекты при наведении */
+.achievement-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Плавные переходы для всех элементов */
+* {
+    transition: background-color 0.3s ease,
+                color 0.3s ease,
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
+}
