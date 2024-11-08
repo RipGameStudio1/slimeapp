@@ -328,12 +328,14 @@ body {
 .nav-item[data-section="play"]::before { background: #2196F3; }
 .nav-item[data-section="shop"]::before { background: #FFC107; }
 .nav-item[data-section="referrals"]::before { background: #9C27B0; }
+.nav-item[data-section="nft"]::before { background: #FF5722; }
 
 /* Цвета иконок при наведении */
 .nav-item:hover i.fa-home { color: #4CAF50; }
 .nav-item:hover i.fa-gamepad { color: #2196F3; }
 .nav-item:hover i.fa-shopping-cart { color: #FFC107; }
 .nav-item:hover i.fa-users { color: #9C27B0; }
+.nav-item:hover i.fa-cube { color: #FF5722; } 
 
 /* Анимация пульсации для активной иконки */
 @keyframes pulseIcon {
@@ -413,6 +415,21 @@ body {
 [data-theme="dark"] .theme-toggle:hover {
     background: rgba(255, 255, 255, 0.1);
 }
+
+@media (max-width: 480px) {
+    .nav-item {
+        padding: 8px 10px; /* Уменьшаем отступы для лучшего размещения */
+    }
+    
+    .nav-item i {
+        font-size: 16px;
+    }
+    
+    .nav-item span {
+        font-size: 8px;
+    }
+}
+
 /* Медиа-запросы для адаптивности */
 @media (max-width: 480px) {
     .container {
