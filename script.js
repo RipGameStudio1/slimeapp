@@ -190,32 +190,48 @@ class FarmingSystem {
             }
             const userData = await response.json();
             
-            this.limeAmount = parseFloat(userData.limeAmount) || 0;
-            this.baseAmount = this.limeAmount; // Сохраняем текущий баланс как базовый
+            // Загружаем базовые данные
             this.farmingCount = userData.farmingCount || 0;
             this.isActive = userData.isActive || false;
-            
+            this.levelSystem.level = userData.level || 1;
+            this.levelSystem.xp = userData.xp || 0;
+    
             if (userData.startTime && this.isActive) {
+                // Если фарминг активен, вычисляем заработанное количество
                 this.startTime = new Date(userData.startTime).getTime();
                 const now = Date.now();
                 const elapsedTime = now - this.startTime;
                 
                 if (elapsedTime < this.farmingDuration) {
+                    // Если фарминг еще не закончился
+                    const earnRate = this.rewardAmount / this.farmingDuration;
+                    const earnedSoFar = earnRate * elapsedTime;
+                    
+                    // Устанавливаем базовый баланс из БД
+                    this.baseAmount = parseFloat(userData.limeAmount) - earnedSoFar;
+                    this.limeAmount = parseFloat(userData.limeAmount);
+                    
                     this.resumeFarming(elapsedTime);
                 } else {
+                    // Если время фарминга истекло
+                    this.limeAmount = parseFloat(userData.limeAmount);
+                    this.baseAmount = this.limeAmount;
                     this.completeFarming();
                 }
+            } else {
+                // Если фарминг не активен, просто загружаем баланс
+                this.limeAmount = parseFloat(userData.limeAmount) || 0;
+                this.baseAmount = this.limeAmount;
             }
             
-            this.levelSystem.level = userData.level || 1;
-            this.levelSystem.xp = userData.xp || 0;
-            
+            // Загружаем достижения
             Object.keys(userData.achievements || {}).forEach(key => {
                 if (this.achievementSystem.achievements[key]) {
                     this.achievementSystem.achievements[key].completed = userData.achievements[key];
                 }
             });
     
+            // Обновляем отображение
             this.updateLimeDisplay();
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
