@@ -1,313 +1,296 @@
-function initUserData() {
-    const tg = window.Telegram.WebApp;
-    
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const user = tg.initDataUnsafe.user;
+// script.js
+class Game {
+    constructor() {
+        this.api = new API();
+        this.tg = window.Telegram.WebApp;
+        this.userId = this.tg.initDataUnsafe?.user?.id;
+        this.userData = null;
         
-        // Обновляем имя пользователя
-        const usernameElement = document.querySelector('.username');
-        usernameElement.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+        this.levelSystem = new LevelSystem(this);
+        this.achievementSystem = new AchievementSystem(this);
+        this.farmingSystem = new FarmingSystem(this);
         
-        // Обновляем аватар используя прямую ссылку на Telegram CDN
-        const avatarElement = document.querySelector('.avatar');
-        const userId = user.id;
-        const photoUrl = `https://cdn4.telegram-cdn.org/file/user${userId}.jpg`;
-        
-        avatarElement.style.backgroundImage = `url(${photoUrl})`;
-        avatarElement.style.backgroundSize = 'cover';
-        avatarElement.style.backgroundPosition = 'center';
+        this.init();
     }
-}
 
-function initThemeToggle() {
-    const themeToggle = document.querySelector('.theme-toggle');
-    const icon = themeToggle.querySelector('i');
-    
-    // Проверяем сохраненную тему
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    async init() {
+        try {
+            // Загружаем данные пользователя
+            if (this.userId) {
+                this.userData = await this.api.getUserData(this.userId);
+                this.updateUI();
+            }
+
+            // Инициализируем UI компоненты
+            this.initThemeToggle();
+            this.initNavigation();
+            
+            // Обновляем данные каждые 30 секунд
+            setInterval(() => this.refreshUserData(), 30000);
+        } catch (error) {
+            console.error('Initialization error:', error);
+            showToast('Error loading user data');
+        }
     }
-    
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-    });
+
+    async refreshUserData() {
+        try {
+            this.userData = await this.api.getUserData(this.userId);
+            this.updateUI();
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        }
+    }
+
+    updateUI() {
+        // Обновляем отображение всех данных
+        this.updateLimeDisplay();
+        this.levelSystem.updateDisplay();
+        this.achievementSystem.updateDisplay();
+    }
+
+    updateLimeDisplay() {
+        const limeAmountElement = document.querySelector('.lime-amount');
+        if (limeAmountElement) {
+            limeAmountElement.textContent = this.userData.limeAmount.toFixed(5);
+        }
+    }
+
+    initThemeToggle() {
+        const themeToggle = document.querySelector('.theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.setAttribute(
+                    'data-theme',
+                    document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+                );
+            });
+        }
+    }
+
+    initNavigation() {
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = item.getAttribute('data-section');
+                this.navigateToSection(section);
+            });
+        });
+    }
+
+    navigateToSection(section) {
+        // Реализация навигации между разделами
+        console.log(`Navigating to ${section}`);
+        // TODO: Добавить логику переключения разделов
+    }
 }
 
 class LevelSystem {
-    constructor() {
-        this.level = 1;
-        this.xp = 0;
-        this.multiplier = 1;
+    constructor(game) {
+        this.game = game;
         this.levelElement = document.getElementById('level');
         this.speedElement = document.getElementById('speed');
         this.progressElement = document.getElementById('level-progress');
-        this.loadState();
     }
 
-    loadState() {
-        const savedState = localStorage.getItem('levelSystem');
-        if (savedState) {
-            const { level, xp } = JSON.parse(savedState);
-            this.level = level;
-            this.xp = xp;
-            this.multiplier = this.getMultiplier();
-            this.updateDisplay();
-        }
-    }
-
-    saveState() {
-        localStorage.setItem('levelSystem', JSON.stringify({
-            level: this.level,
-            xp: this.xp
-        }));
-    }
-
-    calculateXpForLevel(level) {
-        return Math.floor(100 * Math.pow(1.5, level));
-    }
-
-    getMultiplier() {
-        return 1;
-    }
-
-    addXp(amount) {
-        this.xp += amount;
-        const requiredXp = this.calculateXpForLevel(this.level);
-        
-        if (this.xp >= requiredXp) {
-            this.levelUp();
-        }
-        
+    async addXp(amount) {
+        const newXp = this.game.userData.xp + amount;
+        const updatedData = await this.game.api.updateUserData(this.game.userId, {
+            xp: newXp
+        });
+        this.game.userData = updatedData;
         this.updateDisplay();
-        this.saveState();
     }
-
-    levelUp() {
-    this.level++;
-    this.xp = 0;
-    showToast(`Level Up! Now level ${this.level}`);
-    this.levelElement.classList.add('number-change');
-    setTimeout(() => this.levelElement.classList.remove('number-change'), 300);
-}
 
     updateDisplay() {
-        const requiredXp = this.calculateXpForLevel(this.level);
-        const progress = (this.xp / requiredXp) * 100;
-        
-        this.levelElement.textContent = this.level;
-        this.speedElement.textContent = `${this.multiplier.toFixed(1)}x`;
-        this.progressElement.style.width = `${progress}%`;
+        if (this.levelElement) {
+            this.levelElement.textContent = this.game.userData.level;
+        }
+        if (this.speedElement) {
+            this.speedElement.textContent = `${this.getSpeedMultiplier()}x`;
+        }
+        if (this.progressElement) {
+            const progress = this.calculateLevelProgress();
+            this.progressElement.style.width = `${progress}%`;
+        }
+    }
+
+    getSpeedMultiplier() {
+        // Расчет множителя скорости на основе уровня
+        return 1 + (this.game.userData.level - 1) * 0.1;
+    }
+
+    calculateLevelProgress() {
+        // Расчет прогресса уровня
+        const xpForNextLevel = this.calculateXpForNextLevel();
+        const currentLevelXp = this.game.userData.xp;
+        return (currentLevelXp / xpForNextLevel) * 100;
+    }
+
+    calculateXpForNextLevel() {
+        return Math.floor(100 * Math.pow(1.5, this.game.userData.level));
     }
 }
 
 class AchievementSystem {
-    constructor() {
-        this.achievements = {
-            firstFarm: {
-                id: 'first-farm',
-                title: 'First Steps',
-                description: 'Complete first farming',
-                reward: 10,
-                completed: false
-            },
-            speedDemon: {
-                id: 'speed-demon',
-                title: 'Speed Demon',
-                description: 'Reach 2x speed',
-                reward: 50,
-                completed: false
-            },
-            millionaire: {
-                id: 'millionaire',
-                title: 'Millionaire',
-                description: 'Get 1,000,000 $lime',
-                reward: 1000,
-                completed: false
-            }
-        };
-        this.loadState();
-    }
-
-    loadState() {
-        const savedState = localStorage.getItem('achievements');
-        if (savedState) {
-            const saved = JSON.parse(savedState);
-            Object.keys(saved).forEach(key => {
-                if (this.achievements[key]) {
-                    this.achievements[key].completed = saved[key].completed;
-                }
-            });
-        }
-        this.updateDisplay();
-    }
-
-    saveState() {
-        localStorage.setItem('achievements', JSON.stringify(this.achievements));
-    }
-
-    checkAchievements(stats) {
-        const { limeAmount, farmingCount, farmingSpeed } = stats;
-        
-        if (!this.achievements.firstFarm.completed && farmingCount > 0) {
-            this.unlockAchievement('firstFarm');
-        }
-        
-        if (!this.achievements.speedDemon.completed && farmingSpeed >= 2) {
-            this.unlockAchievement('speedDemon');
-        }
-        
-        if (!this.achievements.millionaire.completed && limeAmount >= 1000000) {
-            this.unlockAchievement('millionaire');
-        }
-    }
-
-    unlockAchievement(id) {
-        const achievement = this.achievements[id];
-        if (!achievement.completed) {
-            achievement.completed = true;
-            showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
-            
-            const card = document.querySelector(`[data-id="${id}"]`);
-            if (card) {
-                card.classList.add('completed');
-            }
-            
-            this.saveState();
-        }
+    constructor(game) {
+        this.game = game;
+        this.achievementCards = document.querySelectorAll('.achievement-card');
     }
 
     updateDisplay() {
-        Object.keys(this.achievements).forEach(key => {
-            const achievement = this.achievements[key];
-            const card = document.querySelector(`[data-id="${achievement.id}"]`);
-            if (card && achievement.completed) {
-                card.classList.add('completed');
-            }
-        });
+        if (this.game.userData?.achievements) {
+            Object.entries(this.game.userData.achievements).forEach(([key, completed]) => {
+                const card = document.querySelector(`[data-id="${key}"]`);
+                if (card) {
+                    card.classList.toggle('completed', completed);
+                }
+            });
+        }
+    }
+
+    async checkAchievements() {
+        const achievements = this.game.userData.achievements;
+        let updated = false;
+
+        if (!achievements.firstFarm && this.game.userData.farmingCount > 0) {
+            achievements.firstFarm = true;
+            updated = true;
+        }
+
+        if (!achievements.speedDemon && this.game.levelSystem.getSpeedMultiplier() >= 2) {
+            achievements.speedDemon = true;
+            updated = true;
+        }
+
+        if (!achievements.millionaire && this.game.userData.limeAmount >= 1000000) {
+            achievements.millionaire = true;
+            updated = true;
+        }
+
+        if (updated) {
+            if (updated) {
+            const updatedData = await this.game.api.updateUserData(this.game.userId, {
+                achievements: achievements
+            });
+            this.game.userData = updatedData;
+            this.updateDisplay();
+        }
     }
 }
 
 class FarmingSystem {
-    constructor() {
+    constructor(game) {
+        this.game = game;
         this.button = document.querySelector('.farming-button');
         this.buttonContent = document.querySelector('.farming-button-content');
         this.farmingDuration = 5 * 60 * 60 * 1000; // 5 hours
         this.rewardAmount = 70;
         this.isActive = false;
-        this.limeAmount = 0;
-        this.farmingCount = 0;
-        this.lastUpdate = null;
         
-        this.levelSystem = new LevelSystem();
-        this.achievementSystem = new AchievementSystem();
-        
-        this.loadState();
         this.init();
     }
 
-    loadState() {
-        const savedState = localStorage.getItem('farmingState');
-        if (savedState) {
-            const state = JSON.parse(savedState);
-            this.limeAmount = state.limeAmount || 0;
-            this.farmingCount = state.farmingCount || 0;
-            this.updateLimeDisplay();
-        }
-    }
-
-    saveState() {
-        localStorage.setItem('farmingState', JSON.stringify({
-            limeAmount: this.limeAmount,
-            farmingCount: this.farmingCount,
-            isActive: this.isActive,
-            startTime: this.lastUpdate
-        }));
-    }
-
-    init() {
-        // Проверяем сохраненное состояние фарминга
-        const savedState = localStorage.getItem('farmingState');
-        if (savedState) {
-            const { startTime, isActive } = JSON.parse(savedState);
-            if (isActive) {
-                const currentTime = Date.now();
-                const elapsedTime = currentTime - startTime;
-                
-                if (elapsedTime < this.farmingDuration) {
-                    this.startFarming(elapsedTime);
-                } else {
-                    this.completeFarming();
-                }
-            }
+    async init() {
+        if (this.button) {
+            this.button.addEventListener('click', () => this.toggleFarming());
         }
 
-        this.button.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.startFarming();
-            }
-        });
-
-        // Проверка достижений каждую секунду
-        setInterval(() => {
-            this.achievementSystem.checkAchievements({
-                limeAmount: this.limeAmount,
-                farmingCount: this.farmingCount,
-                farmingSpeed: this.levelSystem.multiplier
-            });
-        }, 1000);
-
-        // Автосохранение каждые 30 секунд
-        setInterval(() => {
-            this.saveState();
-        }, 30000);
-    }
-
-    startFarming(elapsedTime = 0) {
-        this.isActive = true;
-        this.farmingCount++;
-        this.button.classList.add('disabled');
-        
-        if (!this.button.querySelector('.farming-progress')) {
-            const progressBar = document.createElement('div');
-            progressBar.classList.add('farming-progress');
-            this.button.insertBefore(progressBar, this.buttonContent);
-        }
-
-        const startTime = Date.now() - elapsedTime;
-        this.lastUpdate = Date.now();
-        this.farmingRate = this.rewardAmount / this.farmingDuration;
-
-        this.saveState();
-
-        this.farmingInterval = setInterval(() => {
-            const currentTime = Date.now();
-            const deltaTime = currentTime - this.lastUpdate;
-            const earnedAmount = (this.farmingRate * deltaTime) * this.levelSystem.multiplier;
-            
-            this.limeAmount += earnedAmount;
-            this.updateLimeDisplay();
-            this.levelSystem.addXp(earnedAmount * 10);
-            
-            const elapsedTotal = currentTime - startTime;
-            const remaining = this.farmingDuration - elapsedTotal;
-
-            if (remaining <= 0) {
-                this.completeFarming();
+        // Проверяем, не был ли активен фарминг
+        if (this.game.userData?.isActive) {
+            const startTime = new Date(this.game.userData.startTime);
+            const elapsedTime = Date.now() - startTime.getTime();
+            if (elapsedTime < this.farmingDuration) {
+                this.startFarming(elapsedTime);
             } else {
-                this.updateProgress(remaining);
+                this.completeFarming();
+            }
+        }
+    }
+
+    async toggleFarming() {
+        if (!this.isActive) {
+            await this.startFarming();
+        }
+    }
+
+    async startFarming(elapsedTime = 0) {
+        try {
+            // Обновляем состояние в базе данных
+            const updatedData = await this.game.api.startFarming(this.game.userId);
+            this.game.userData = updatedData;
+
+            this.isActive = true;
+            this.button.classList.add('disabled');
+
+            // Создаем индикатор прогресса
+            if (!this.button.querySelector('.farming-progress')) {
+                const progressBar = document.createElement('div');
+                progressBar.classList.add('farming-progress');
+                this.button.insertBefore(progressBar, this.buttonContent);
             }
 
-            this.lastUpdate = currentTime;
-        }, 50);
+            const startTime = Date.now() - elapsedTime;
+            this.farmingInterval = setInterval(() => {
+                const currentTime = Date.now();
+                const totalElapsed = currentTime - startTime;
+                const remaining = this.farmingDuration - totalElapsed;
 
-        showToast('Farming started! Come back in 5 hours');
+                if (remaining <= 0) {
+                    this.completeFarming();
+                } else {
+                    this.updateProgress(remaining);
+                }
+            }, 1000);
+
+            showToast('Farming started! Come back in 5 hours');
+        } catch (error) {
+            console.error('Error starting farming:', error);
+            showToast('Failed to start farming');
+        }
+    }
+
+    async completeFarming() {
+        try {
+            clearInterval(this.farmingInterval);
+
+            const earnedAmount = this.calculateReward();
+            const earnedXp = earnedAmount * 10;
+
+            // Обновляем данные в базе
+            const updatedData = await this.game.api.endFarming(
+                this.game.userId,
+                earnedAmount,
+                earnedXp
+            );
+            
+            this.game.userData = updatedData;
+            this.isActive = false;
+            
+            // Обновляем UI
+            this.button.classList.remove('disabled');
+            this.buttonContent.textContent = 'Start Farming';
+            const progressBar = this.button.querySelector('.farming-progress');
+            if (progressBar) {
+                progressBar.remove();
+            }
+
+            // Проверяем достижения
+            await this.game.achievementSystem.checkAchievements();
+            
+            this.game.updateUI();
+            showToast('Farming completed!');
+        } catch (error) {
+            console.error('Error completing farming:', error);
+            showToast('Error completing farming');
+        }
+    }
+
+    calculateReward() {
+        const baseReward = this.rewardAmount;
+        const multiplier = this.game.levelSystem.getSpeedMultiplier();
+        return baseReward * multiplier;
     }
 
     updateProgress(remainingTime) {
@@ -315,23 +298,10 @@ class FarmingSystem {
         const progressPercent = ((this.farmingDuration - remainingTime) / this.farmingDuration) * 100;
         const timeString = this.formatTime(remainingTime);
 
-        progressBar.style.width = `${progressPercent}%`;
-        this.buttonContent.textContent = `Farming: ${timeString}`;
-    }
-
-    completeFarming() {
-        clearInterval(this.farmingInterval);
-        this.isActive = false;
-        this.button.classList.remove('disabled');
-        this.buttonContent.textContent = 'Start Farming';
-        
-        const progressBar = this.button.querySelector('.farming-progress');
         if (progressBar) {
-            progressBar.remove();
+            progressBar.style.width = `${progressPercent}%`;
         }
-
-        this.saveState();
-        showToast('Farming completed!');
+        this.buttonContent.textContent = `Farming: ${timeString}`;
     }
 
     formatTime(ms) {
@@ -340,32 +310,21 @@ class FarmingSystem {
         const seconds = Math.floor((ms % (1000 * 60)) / 1000);
         return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
+}
 
-    updateLimeDisplay() {
-        const limeAmountElement = document.querySelector('.lime-amount');
-        const formattedNumber = this.limeAmount.toFixed(5);
-        
-        if (limeAmountElement.textContent !== formattedNumber) {
-            limeAmountElement.classList.add('number-change');
-            setTimeout(() => limeAmountElement.classList.remove('number-change'), 300);
-        }
-        
-        limeAmountElement.textContent = formattedNumber;
+// Вспомогательные функции
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
     }
 }
 
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-// Инициализация при загрузке страницы
+// Инициализация приложения
 document.addEventListener('DOMContentLoaded', () => {
-    const farmingSystem = new FarmingSystem();
-    initThemeToggle();
-	initUserData();
+    const game = new Game();
 });
