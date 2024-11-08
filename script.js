@@ -54,7 +54,7 @@ class LevelSystem {
     }
 
     getMultiplier() {
-        return 1 + (this.level - 1) * 0.1;
+        return 1;
     }
 
     addXp(amount) {
@@ -71,7 +71,6 @@ class LevelSystem {
     levelUp() {
         this.level++;
         this.xp = 0;
-        this.multiplier = this.getMultiplier();
         showToast(`Level Up! Now level ${this.level}`);
         this.levelElement.classList.add('number-change');
         setTimeout(() => this.levelElement.classList.remove('number-change'), 300);
@@ -82,7 +81,7 @@ class LevelSystem {
         const progress = (this.xp / requiredXp) * 100;
         
         this.levelElement.textContent = this.level;
-        this.speedElement.textContent = `${this.multiplier.toFixed(1)}x`;
+        this.speedElement.textContent = '1x';
         this.progressElement.style.width = `${progress}%`;
     }
 }
@@ -158,7 +157,7 @@ class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
         this.buttonContent = document.querySelector('.farming-button-content');
-        this.farmingDuration = 5 * 60 * 60 * 1000; // 5 hours
+        this.farmingDuration = 5 * 60 * 60 * 1000;
         this.rewardAmount = 70;
         this.isActive = false;
         this.limeAmount = 0;
@@ -191,6 +190,7 @@ class FarmingSystem {
             const userData = await response.json();
             
             this.limeAmount = parseFloat(userData.limeAmount) || 0;
+            this.baseAmount = this.limeAmount;
             this.farmingCount = userData.farmingCount || 0;
             this.isActive = userData.isActive || false;
             
@@ -208,7 +208,6 @@ class FarmingSystem {
             
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
-            this.levelSystem.multiplier = this.levelSystem.getMultiplier();
             
             Object.keys(userData.achievements || {}).forEach(key => {
                 if (this.achievementSystem.achievements[key]) {
@@ -233,6 +232,7 @@ class FarmingSystem {
         this.isActive = true;
         this.button.classList.add('disabled');
         this.lastUpdate = Date.now();
+        this.baseAmount = this.limeAmount;
 
         if (!this.button.querySelector('.farming-progress')) {
             const progressBar = document.createElement('div');
@@ -247,34 +247,36 @@ class FarmingSystem {
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
             const currentElapsed = now - this.startTime;
-            const deltaTime = now - this.lastUpdate;
-
+            
             if (currentElapsed >= this.farmingDuration) {
                 this.completeFarming();
                 return;
             }
 
             const earnRate = this.rewardAmount / this.farmingDuration;
-            const earnedAmount = (earnRate * deltaTime) * this.levelSystem.multiplier;
-            this.limeAmount += earnedAmount;
+            const totalEarned = earnRate * currentElapsed;
+            
+            this.limeAmount = this.baseAmount + totalEarned;
+            
             this.updateLimeDisplay();
-            this.levelSystem.addXp(earnedAmount * 10);
+            this.levelSystem.addXp(totalEarned * 0.1);
 
             const progress = (currentElapsed / this.farmingDuration) * 100;
             progressBar.style.width = `${progress}%`;
             
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
-            this.lastUpdate = now;
             
+        }, 50);
+
+        this.saveInterval = setInterval(() => {
             this.saveUserData();
-        }, 1000);
+        }, 5000);
     }
 
     startFarming() {
         this.isActive = true;
         this.farmingCount++;
         this.startTime = Date.now();
-        this.limeAmount = 0; // Сбрасываем баланс при начале нового фарминга
         this.resumeFarming(0);
         this.saveUserData();
         showToast('Farming started! Come back in 5 hours');
@@ -282,6 +284,7 @@ class FarmingSystem {
 
     completeFarming() {
         clearInterval(this.farmingInterval);
+        clearInterval(this.saveInterval);
         this.isActive = false;
         this.startTime = null;
         this.button.classList.remove('disabled');
@@ -357,7 +360,7 @@ class FarmingSystem {
             this.achievementSystem.checkAchievements({
                 limeAmount: this.limeAmount,
                 farmingCount: this.farmingCount,
-                farmingSpeed: this.levelSystem.multiplier
+                farmingSpeed: 1
             });
         }, 1000);
 
