@@ -191,16 +191,16 @@ class FarmingSystem {
             const userData = await response.json();
             
             this.limeAmount = parseFloat(userData.limeAmount) || 0;
-            this.baseAmount = this.limeAmount;
+            this.baseAmount = this.limeAmount; // Сохраняем текущий баланс как базовый
             this.farmingCount = userData.farmingCount || 0;
             this.isActive = userData.isActive || false;
             
-            if (userData.startTime) {
+            if (userData.startTime && this.isActive) {
                 this.startTime = new Date(userData.startTime).getTime();
                 const now = Date.now();
                 const elapsedTime = now - this.startTime;
                 
-                if (elapsedTime < this.farmingDuration && this.isActive) {
+                if (elapsedTime < this.farmingDuration) {
                     this.resumeFarming(elapsedTime);
                 } else {
                     this.completeFarming();
@@ -215,7 +215,7 @@ class FarmingSystem {
                     this.achievementSystem.achievements[key].completed = userData.achievements[key];
                 }
             });
-
+    
             this.updateLimeDisplay();
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
@@ -229,22 +229,22 @@ class FarmingSystem {
         }
     }
 
+
     resumeFarming(elapsedTime) {
         this.isActive = true;
         this.button.classList.add('disabled');
         this.lastUpdate = Date.now();
-        this.baseAmount = this.limeAmount;
-
+    
         if (!this.button.querySelector('.farming-progress')) {
             const progressBar = document.createElement('div');
             progressBar.classList.add('farming-progress');
             this.button.insertBefore(progressBar, this.buttonContent);
         }
-
+    
         const progressBar = this.button.querySelector('.farming-progress');
         const progress = (elapsedTime / this.farmingDuration) * 100;
         progressBar.style.width = `${progress}%`;
-
+    
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
             const currentElapsed = now - this.startTime;
@@ -253,29 +253,26 @@ class FarmingSystem {
                 this.completeFarming();
                 return;
             }
-
+    
             const earnRate = this.rewardAmount / this.farmingDuration;
             const totalEarned = earnRate * currentElapsed;
             
+            // Обновляем баланс относительно начального значения
             this.limeAmount = this.baseAmount + totalEarned;
             
             this.updateLimeDisplay();
             this.levelSystem.addXp(totalEarned * 0.1);
-
+    
             const progress = (currentElapsed / this.farmingDuration) * 100;
             progressBar.style.width = `${progress}%`;
             
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
         }, 50);
-
+    
+        // Сохраняем данные реже
         this.saveInterval = setInterval(() => {
             if (this.isActive) {
-                const now = Date.now();
-                const currentElapsed = now - this.startTime;
-                const earnRate = this.rewardAmount / this.farmingDuration;
-                const totalEarned = earnRate * currentElapsed;
-                
-                this.saveUserData(this.baseAmount + totalEarned);
+                this.saveUserData(this.limeAmount);
             }
         }, 5000);
     }
@@ -283,12 +280,11 @@ class FarmingSystem {
         this.isActive = true;
         this.farmingCount++;
         this.startTime = Date.now();
-        this.baseAmount = this.limeAmount;
+        this.baseAmount = this.limeAmount; // Сохраняем текущий баланс как базовый
         this.resumeFarming(0);
         this.saveUserData(this.limeAmount);
         showToast('Farming started! Come back in 5 hours');
     }
-
     completeFarming() {
         clearInterval(this.farmingInterval);
         clearInterval(this.saveInterval);
