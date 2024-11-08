@@ -87,77 +87,6 @@ class LevelSystem {
     }
 }
 
-class AchievementSystem {
-    constructor() {
-        this.achievements = {
-            firstFarm: {
-                id: 'first-farm',
-                title: 'First Steps',
-                description: 'Complete first farming',
-                reward: 10,
-                completed: false
-            },
-            speedDemon: {
-                id: 'speed-demon',
-                title: 'Speed Demon',
-                description: 'Reach 2x speed',
-                reward: 50,
-                completed: false
-            },
-            millionaire: {
-                id: 'millionaire',
-                title: 'Millionaire',
-                description: 'Get 1,000,000 $lime',
-                reward: 1000,
-                completed: false
-            }
-        };
-    }
-
-    checkAchievements(stats) {
-        const { limeAmount, farmingCount, farmingSpeed } = stats;
-        
-        if (!this.achievements.firstFarm.completed && farmingCount > 0) {
-            this.unlockAchievement('firstFarm');
-        }
-        
-        if (!this.achievements.speedDemon.completed && farmingSpeed >= 2) {
-            this.unlockAchievement('speedDemon');
-        }
-        
-        if (!this.achievements.millionaire.completed && limeAmount >= 1000000) {
-            this.unlockAchievement('millionaire');
-        }
-    }
-
-    unlockAchievement(id) {
-        const achievement = this.achievements[id];
-        if (!achievement.completed) {
-            achievement.completed = true;
-            showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
-            
-            const card = document.querySelector(`[data-id="${id}"]`);
-            if (card) {
-                card.classList.add('completed');
-            }
-            
-            if (window.farmingSystem) {
-                window.farmingSystem.saveUserData();
-            }
-        }
-    }
-
-    updateDisplay() {
-        Object.keys(this.achievements).forEach(key => {
-            const achievement = this.achievements[key];
-            const card = document.querySelector(`[data-id="${achievement.id}"]`);
-            if (card && achievement.completed) {
-                card.classList.add('completed');
-            }
-        });
-    }
-}
-
 class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
@@ -168,9 +97,10 @@ class FarmingSystem {
         this.limeAmount = 0;
         this.farmingCount = 0;
         this.lastUpdate = null;
+        this.startTime = null;
         this.userId = null;
         this.lastSaveTime = Date.now();
-        this.saveInterval = 1000; // сохранение каждую секунду
+        this.saveInterval = 1000;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
@@ -198,11 +128,7 @@ class FarmingSystem {
             this.limeAmount = parseFloat(userData.limeAmount) || 0;
             this.farmingCount = userData.farmingCount || 0;
             this.isActive = userData.isActive || false;
-            
-            // Изменяем обработку времени
-            if (userData.startTime) {
-                this.lastUpdate = new Date(userData.startTime).getTime();
-            }
+            this.startTime = userData.startTime ? new Date(userData.startTime).getTime() : null;
             
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
@@ -213,14 +139,14 @@ class FarmingSystem {
                     this.achievementSystem.achievements[key].completed = userData.achievements[key];
                 }
             });
-            
+
             this.updateLimeDisplay();
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
             
-            if (this.isActive && this.lastUpdate) {
+            if (this.isActive && this.startTime) {
                 const now = Date.now();
-                const elapsedTime = now - this.lastUpdate;
+                const elapsedTime = now - this.startTime;
                 
                 if (elapsedTime < this.farmingDuration) {
                     this.startFarming(elapsedTime);
@@ -238,15 +164,14 @@ class FarmingSystem {
         }
     }
 
-    calculateOfflineEarnings(offlineTime) {
-        const maxOfflineTime = Math.min(offlineTime, this.farmingDuration);
-        return (this.rewardAmount / this.farmingDuration) * maxOfflineTime * this.levelSystem.multiplier;
-    }
-
     startFarming(elapsedTime = 0) {
         this.isActive = true;
         this.farmingCount++;
         this.button.classList.add('disabled');
+        
+        const now = Date.now();
+        this.startTime = now - elapsedTime;
+        this.lastUpdate = now;
         
         if (!this.button.querySelector('.farming-progress')) {
             const progressBar = document.createElement('div');
@@ -254,21 +179,15 @@ class FarmingSystem {
             this.button.insertBefore(progressBar, this.buttonContent);
         }
 
-        // Если это новый старт фарминга (не восстановление после перезагрузки)
-        if (elapsedTime === 0) {
-            this.lastUpdate = Date.now();
-        }
-        
-        const startTime = Date.now() - elapsedTime;
         this.farmingRate = this.rewardAmount / this.farmingDuration;
-
         this.saveUserData();
 
         this.farmingInterval = setInterval(() => {
             const currentTime = Date.now();
+            const totalElapsed = currentTime - this.startTime;
             const deltaTime = currentTime - this.lastUpdate;
-            const earnedAmount = (this.farmingRate * deltaTime) * this.levelSystem.multiplier;
             
+            const earnedAmount = (this.farmingRate * deltaTime) * this.levelSystem.multiplier;
             this.limeAmount += earnedAmount;
             this.updateLimeDisplay();
             this.levelSystem.addXp(earnedAmount * 10);
@@ -278,13 +197,10 @@ class FarmingSystem {
                 this.lastSaveTime = currentTime;
             }
             
-            const elapsedTotal = currentTime - startTime;
-            const remaining = this.farmingDuration - elapsedTotal;
-
-            if (remaining <= 0) {
+            if (totalElapsed >= this.farmingDuration) {
                 this.completeFarming();
             } else {
-                this.updateProgress(remaining);
+                this.updateProgress(this.farmingDuration - totalElapsed);
             }
 
             this.lastUpdate = currentTime;
@@ -306,7 +222,7 @@ class FarmingSystem {
                     limeAmount: this.limeAmount,
                     farmingCount: this.farmingCount,
                     isActive: this.isActive,
-                    startTime: this.lastUpdate ? new Date(this.lastUpdate) : null,
+                    startTime: this.isActive ? new Date(this.startTime) : null,
                     level: this.levelSystem.level,
                     xp: this.levelSystem.xp,
                     achievements: Object.keys(this.achievementSystem.achievements).reduce((acc, key) => {
@@ -324,18 +240,10 @@ class FarmingSystem {
         }
     }
 
-    updateProgress(remainingTime) {
-        const progressBar = this.button.querySelector('.farming-progress');
-        const progressPercent = ((this.farmingDuration - remainingTime) / this.farmingDuration) * 100;
-        const timeString = this.formatTime(remainingTime);
-
-        progressBar.style.width = `${progressPercent}%`;
-        this.buttonContent.textContent = `Farming: ${timeString}`;
-    }
-
     completeFarming() {
         clearInterval(this.farmingInterval);
         this.isActive = false;
+        this.startTime = null;
         this.button.classList.remove('disabled');
         this.buttonContent.textContent = 'Start Farming';
         
@@ -346,6 +254,15 @@ class FarmingSystem {
 
         this.saveUserData();
         showToast('Farming completed!');
+    }
+
+    updateProgress(remainingTime) {
+        const progressBar = this.button.querySelector('.farming-progress');
+        const progressPercent = ((this.farmingDuration - remainingTime) / this.farmingDuration) * 100;
+        const timeString = this.formatTime(remainingTime);
+
+        progressBar.style.width = `${progressPercent}%`;
+        this.buttonContent.textContent = `Farming: ${timeString}`;
     }
 
     formatTime(ms) {
@@ -374,7 +291,6 @@ class FarmingSystem {
             }
         });
 
-        // Проверка достижений каждую секунду
         setInterval(() => {
             this.achievementSystem.checkAchievements({
                 limeAmount: this.limeAmount,
@@ -383,14 +299,12 @@ class FarmingSystem {
             });
         }, 1000);
 
-        // Сохранение перед закрытием страницы
         window.addEventListener('beforeunload', () => {
             if (this.isActive) {
                 this.saveUserData();
             }
         });
 
-        // Сохранение при переключении вкладок
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && this.isActive) {
                 this.saveUserData();
