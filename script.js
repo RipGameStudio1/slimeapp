@@ -9,6 +9,9 @@ function initUserData() {
         const usernameElement = document.querySelector('.username');
         usernameElement.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
         
+        const userIdElement = document.querySelector('.user-id');
+        userIdElement.textContent = `ID: ${user.id}`;
+        
         const avatarElement = document.querySelector('.avatar');
         const userId = user.id;
         const photoUrl = `https://cdn4.telegram-cdn.org/file/user${userId}.jpg`;
