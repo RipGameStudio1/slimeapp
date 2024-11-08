@@ -48,7 +48,6 @@ class LevelSystem {
         this.multiplier = 1;
         this.levelElement = document.getElementById('level');
         this.speedElement = document.getElementById('speed');
-        this.farmingTimeout = null; 
         this.progressElement = document.getElementById('level-progress');
     }
 
@@ -115,6 +114,7 @@ class AchievementSystem {
             }
         };
     }
+
     checkAchievements(stats) {
         const { limeAmount, farmingCount, farmingSpeed } = stats;
         
@@ -154,12 +154,11 @@ class AchievementSystem {
         });
     }
 }
-
 class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
         this.buttonContent = document.querySelector('.farming-button-content');
-        this.farmingDuration = 30 * 1000;
+        this.farmingDuration = 30 * 1000; // 30 секунд
         this.rewardAmount = 70;
         this.isActive = false;
         this.limeAmount = 0;
@@ -169,59 +168,12 @@ class FarmingSystem {
         this.userId = null;
         this.farmingInterval = null;
         this.saveInterval = null;
+        this.farmingTimeout = null;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
         
         this.initUser();
-    }
-    async syncWithServer() {
-        try {
-            const response = await fetch(`${API_URL}/api/users/${this.userId}`);
-            if (!response.ok) throw new Error('Sync failed');
-            
-            const serverData = await response.json();
-            
-            // Если на сервере активный фарминг
-            if (serverData.isActive && serverData.startTime) {
-                const serverStartTime = new Date(serverData.startTime).getTime();
-                
-                // Если на текущем клиенте другое время старта или неактивный фарминг
-                if (!this.isActive || this.startTime !== serverStartTime) {
-                    this.startTime = serverStartTime;
-                    this.isActive = true;
-                    this.baseAmount = parseFloat(serverData.limeAmount);
-                    this.resumeFarming(Date.now() - serverStartTime);
-                }
-            } else if (this.isActive && !serverData.isActive) {
-                // Если на сервере фарминг неактивен, а у нас активен
-                this.completeFarming();
-            }
-            
-            // Синхронизация баланса
-            if (!this.isActive) {
-                this.limeAmount = parseFloat(serverData.limeAmount);
-                this.baseAmount = this.limeAmount;
-                this.updateLimeDisplay();
-            }
-            
-            // Синхронизация других данных
-            this.farmingCount = serverData.farmingCount;
-            this.levelSystem.level = serverData.level;
-            this.levelSystem.xp = serverData.xp;
-            this.levelSystem.updateDisplay();
-            
-            // Синхронизация достижений
-            Object.keys(serverData.achievements || {}).forEach(key => {
-                if (this.achievementSystem.achievements[key]) {
-                    this.achievementSystem.achievements[key].completed = serverData.achievements[key];
-                }
-            });
-            this.achievementSystem.updateDisplay();
-            
-        } catch (error) {
-            console.error('Sync error:', error);
-        }
     }
 
     async initUser() {
@@ -231,6 +183,7 @@ class FarmingSystem {
             await this.loadUserData();
         }
     }
+
     async loadUserData() {
         showLoadingIndicator();
         try {
@@ -286,6 +239,65 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
+    async syncWithServer() {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${this.userId}`);
+            if (!response.ok) throw new Error('Sync failed');
+            
+            const serverData = await response.json();
+            
+            // Если на сервере фарминг неактивен, но у нас активен
+            if (!serverData.isActive && this.isActive) {
+                await this.completeFarming();
+                return;
+            }
+            
+            // Если на сервере активный фарминг
+            if (serverData.isActive && serverData.startTime) {
+                const serverStartTime = new Date(serverData.startTime).getTime();
+                const now = Date.now();
+                const elapsedTime = now - serverStartTime;
+                
+                // Если время фарминга истекло
+                if (elapsedTime >= this.farmingDuration) {
+                    await this.completeFarming();
+                    return;
+                }
+                
+                // Если на текущем клиенте другое время старта или неактивный фарминг
+                if (!this.isActive || this.startTime !== serverStartTime) {
+                    this.startTime = serverStartTime;
+                    this.isActive = true;
+                    this.baseAmount = parseFloat(serverData.limeAmount);
+                    this.resumeFarming(elapsedTime);
+                }
+            }
+            
+            // Синхронизация баланса только если фарминг неактивен
+            if (!this.isActive) {
+                this.limeAmount = parseFloat(serverData.limeAmount);
+                this.baseAmount = this.limeAmount;
+                this.updateLimeDisplay();
+            }
+            
+            // Остальная синхронизация
+            this.farmingCount = serverData.farmingCount;
+            this.levelSystem.level = serverData.level;
+            this.levelSystem.xp = serverData.xp;
+            this.levelSystem.updateDisplay();
+            
+            Object.keys(serverData.achievements || {}).forEach(key => {
+                if (this.achievementSystem.achievements[key]) {
+                    this.achievementSystem.achievements[key].completed = serverData.achievements[key];
+                }
+            });
+            this.achievementSystem.updateDisplay();
+            
+        } catch (error) {
+            console.error('Sync error:', error);
+        }
+    }
+
     resumeFarming(elapsedTime) {
         // Очищаем существующие интервалы
         if (this.farmingInterval) {
@@ -296,27 +308,31 @@ class FarmingSystem {
             clearInterval(this.saveInterval);
             this.saveInterval = null;
         }
-    
+        if (this.farmingTimeout) {
+            clearTimeout(this.farmingTimeout);
+            this.farmingTimeout = null;
+        }
+
         // Если прошло больше времени чем длительность фарминга, сразу завершаем
         if (elapsedTime >= this.farmingDuration) {
             this.completeFarming();
             return;
         }
-    
+
         this.isActive = true;
         this.button.classList.add('disabled');
         this.lastUpdate = Date.now();
-    
+
         if (!this.button.querySelector('.farming-progress')) {
             const progressBar = document.createElement('div');
             progressBar.classList.add('farming-progress');
             this.button.insertBefore(progressBar, this.buttonContent);
         }
-    
+
         const progressBar = this.button.querySelector('.farming-progress');
         const progress = (elapsedTime / this.farmingDuration) * 100;
         progressBar.style.width = `${progress}%`;
-    
+
         // Вычисляем оставшееся время
         const remainingTime = this.farmingDuration - elapsedTime;
         
@@ -324,7 +340,6 @@ class FarmingSystem {
         this.farmingTimeout = setTimeout(() => {
             this.completeFarming();
         }, remainingTime);
-    
         // Интервал только для обновления UI
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
@@ -334,7 +349,7 @@ class FarmingSystem {
                 clearInterval(this.farmingInterval);
                 return;
             }
-    
+
             const earnRate = this.rewardAmount / this.farmingDuration;
             const totalEarned = earnRate * currentElapsed;
             
@@ -342,13 +357,13 @@ class FarmingSystem {
             
             this.updateLimeDisplay();
             this.levelSystem.addXp(totalEarned * 0.1);
-    
+
             const progress = (currentElapsed / this.farmingDuration) * 100;
             progressBar.style.width = `${progress}%`;
             
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
         }, 50);
-    
+
         // Сохраняем данные реже
         this.saveInterval = setInterval(() => {
             if (this.isActive) {
@@ -356,6 +371,7 @@ class FarmingSystem {
             }
         }, 5000);
     }
+
     startFarming() {
         this.isActive = true;
         this.farmingCount++;
@@ -363,12 +379,16 @@ class FarmingSystem {
         this.baseAmount = this.limeAmount;
         this.resumeFarming(0);
         this.saveUserData(this.limeAmount);
-        showToast('Farming started! Come back in 5 hours');
+        showToast('Farming started! Come back in 30 seconds');
     }
-    completeFarming() {
+
+    async completeFarming() {
         // Проверяем, не был ли уже завершен фарминг
         if (!this.isActive) return;
-    
+
+        // Сразу устанавливаем флаг неактивности
+        this.isActive = false;
+
         // Очищаем все таймеры и интервалы
         if (this.farmingInterval) {
             clearInterval(this.farmingInterval);
@@ -388,7 +408,6 @@ class FarmingSystem {
         const totalEarned = earnRate * Math.min(totalElapsed, this.farmingDuration);
         this.limeAmount = this.baseAmount + totalEarned;
         
-        this.isActive = false;
         this.startTime = null;
         this.button.classList.remove('disabled');
         this.buttonContent.textContent = 'Start Farming';
@@ -397,18 +416,35 @@ class FarmingSystem {
         if (progressBar) {
             progressBar.remove();
         }
-    
-        // Сохраняем данные только один раз
-        this.saveUserData(this.limeAmount).then(() => {
+
+        try {
+            // Отправляем финальное состояние на сервер и ждем подтверждения
+            const response = await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    limeAmount: this.limeAmount,
+                    farmingCount: this.farmingCount,
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to complete farming');
+            }
+
             showToast('Farming completed!');
-        });
+        } catch (error) {
+            console.error('Error completing farming:', error);
+            // В случае ошибки пытаемся сохранить обычным способом
+            await this.saveUserData(this.limeAmount);
+        }
     }
 
     formatTime(ms) {
-        const hours = Math.floor(ms / (1000 * 60 * 60));
-        const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        return `${seconds} seconds`;
     }
 
     updateLimeDisplay() {
@@ -422,22 +458,11 @@ class FarmingSystem {
         
         limeAmountElement.textContent = formattedNumber;
     }
+
     async saveUserData(exactAmount = null) {
         if (!this.userId) return;
         
         try {
-            // Сначала получаем актуальные данные с сервера для проверки
-            const checkResponse = await fetch(`${API_URL}/api/users/${this.userId}`);
-            const serverData = await checkResponse.json();
-
-            // Если на сервере активный фарминг с другим временем старта,
-            // прерываем сохранение и синхронизируемся
-            if (serverData.isActive && serverData.startTime && 
-                this.startTime !== new Date(serverData.startTime).getTime()) {
-                await this.syncWithServer();
-                return;
-            }
-
             const response = await fetch(`${API_URL}/api/users/${this.userId}`, {
                 method: 'PUT',
                 headers: {
@@ -483,6 +508,7 @@ class FarmingSystem {
                 this.syncWithServer();
             }
         });
+
         // Синхронизация при восстановлении подключения к интернету
         window.addEventListener('online', () => {
             this.syncWithServer();
@@ -495,12 +521,6 @@ class FarmingSystem {
                 farmingSpeed: 1
             });
         }, 1000);
-
-        window.addEventListener('beforeunload', () => {
-            if (this.isActive) {
-                this.saveUserData(this.limeAmount);
-            }
-        });
     }
 }
 
