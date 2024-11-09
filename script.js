@@ -170,6 +170,7 @@ class FarmingSystem {
         this.userId = null;
         this.farmingInterval = null;
         this.saveInterval = null;
+        this.farmingTimeout = null;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
@@ -194,72 +195,44 @@ class FarmingSystem {
             }
             const userData = await response.json();
             
-            // Загружаем базовые данные
             this.farmingCount = userData.farmingCount || 0;
+            this.isActive = userData.isActive || false;
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
     
-            // Проверяем статус фарминга
-            if (userData.isActive && userData.startTime) {
-                const startTime = new Date(userData.startTime).getTime();
+            if (userData.startTime && this.isActive) {
+                this.startTime = new Date(userData.startTime).getTime();
                 const now = Date.now();
-                const elapsedTime = now - startTime;
+                const elapsedTime = now - this.startTime;
                 
                 if (elapsedTime < this.farmingDuration) {
-                    // Фарминг все еще активен
                     const earnRate = this.rewardAmount / this.farmingDuration;
                     const earnedSoFar = earnRate * elapsedTime;
                     
-                    this.baseAmount = parseFloat(userData.limeAmount);
-                    this.limeAmount = this.baseAmount + earnedSoFar;
-                    this.isActive = true;
-                    this.startTime = startTime;
+                    this.baseAmount = parseFloat(userData.limeAmount) - earnedSoFar;
+                    this.limeAmount = parseFloat(userData.limeAmount);
                     
                     this.resumeFarming(elapsedTime);
                 } else {
-                    // Фарминг завершился во время отсутствия
-                    const completedFarmings = Math.floor(elapsedTime / this.farmingDuration);
-                    const earnedTotal = this.rewardAmount * completedFarmings;
-                    
-                    this.limeAmount = parseFloat(userData.limeAmount) + earnedTotal;
+                    this.limeAmount = parseFloat(userData.limeAmount);
                     this.baseAmount = this.limeAmount;
-                    this.farmingCount += completedFarmings;
-                    this.isActive = false;
-                    this.startTime = null;
-    
-                    if (completedFarmings > 0) {
-                        showToast(`Offline farming completed: +${earnedTotal.toFixed(5)} $lime`);
-                        await this.saveUserData(this.limeAmount);
-                    }
+                    this.completeFarming();
                 }
             } else {
-                // Нет активного фарминга
                 this.limeAmount = parseFloat(userData.limeAmount) || 0;
                 this.baseAmount = this.limeAmount;
-                this.isActive = false;
-                this.startTime = null;
             }
+            
+            Object.keys(userData.achievements || {}).forEach(key => {
+                if (this.achievementSystem.achievements[key]) {
+                    this.achievementSystem.achievements[key].completed = userData.achievements[key];
+                }
+            });
     
-            // Загружаем достижения
-            if (userData.achievements) {
-                Object.keys(userData.achievements).forEach(key => {
-                    if (this.achievementSystem.achievements[key]) {
-                        this.achievementSystem.achievements[key].completed = userData.achievements[key];
-                    }
-                });
-            }
-    
-            // Обновляем отображение
             this.updateLimeDisplay();
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
-    
-            // Обновляем состояние кнопки
-            if (!this.isActive) {
-                this.button.classList.remove('disabled');
-                this.buttonContent.textContent = 'Start Farming';
-            }
-    
+            
             this.init();
         } catch (error) {
             console.error('Error loading user data:', error);
@@ -268,60 +241,176 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
-    async startFarming() {
-        if (this.isActive) return;
-        
-        this.isActive = true;
-        this.startTime = Date.now();
-        this.baseAmount = this.limeAmount;
-        this.button.classList.add('disabled');
-        
-        const progressBar = document.createElement('div');
-        progressBar.classList.add('farming-progress');
-        this.button.insertBefore(progressBar, this.buttonContent);
-        
+    async syncWithServer() {
         try {
-            await this.saveUserData(this.limeAmount);
+            const response = await fetch(`${API_URL}/api/users/${this.userId}`);
+            if (!response.ok) throw new Error('Sync failed');
             
-            this.farmingInterval = setInterval(() => {
+            const serverData = await response.json();
+            
+            // Если на сервере фарминг неактивен, но у нас активен
+            if (!serverData.isActive && this.isActive) {
+                await this.completeFarming();
+                return;
+            }
+            
+            // Если на сервере активный фарминг
+            if (serverData.isActive && serverData.startTime) {
+                const serverStartTime = new Date(serverData.startTime).getTime();
                 const now = Date.now();
-                const elapsedTime = now - this.startTime;
-                const remainingTime = this.farmingDuration - elapsedTime;
-                const progress = (elapsedTime / this.farmingDuration) * 100;
+                const elapsedTime = now - serverStartTime;
                 
+                // Если время фарминга истекло
                 if (elapsedTime >= this.farmingDuration) {
-                    this.completeFarming();
-                } else {
-                    const earnRate = this.rewardAmount / this.farmingDuration;
-                    const earned = earnRate * elapsedTime;
-                    this.limeAmount = this.baseAmount + earned;
-                    this.updateLimeDisplay();
-                    progressBar.style.width = `${progress}%`;
-                    
-                    // Обновляем текст кнопки с оставшимся временем
-                    const secondsLeft = Math.ceil(remainingTime / 1000);
-                    this.buttonContent.textContent = `Farming... ${secondsLeft}s`;
+                    await this.completeFarming();
+                    return;
                 }
-            }, 50);
+                
+                // Если на текущем клиенте другое время старта или неактивный фарминг
+                if (!this.isActive || this.startTime !== serverStartTime) {
+                    this.startTime = serverStartTime;
+                    this.isActive = true;
+                    this.baseAmount = parseFloat(serverData.limeAmount);
+                    this.resumeFarming(elapsedTime);
+                }
+            }
             
-            this.saveInterval = setInterval(() => {
-                this.saveUserData(this.limeAmount);
-            }, 5000);
+            // Синхронизация баланса только если фарминг неактивен
+            if (!this.isActive) {
+                this.limeAmount = parseFloat(serverData.limeAmount);
+                this.baseAmount = this.limeAmount;
+                this.updateLimeDisplay();
+            }
+            
+            // Остальная синхронизация
+            this.farmingCount = serverData.farmingCount;
+            this.levelSystem.level = serverData.level;
+            this.levelSystem.xp = serverData.xp;
+            this.levelSystem.updateDisplay();
+            
+            Object.keys(serverData.achievements || {}).forEach(key => {
+                if (this.achievementSystem.achievements[key]) {
+                    this.achievementSystem.achievements[key].completed = serverData.achievements[key];
+                }
+            });
+            this.achievementSystem.updateDisplay();
             
         } catch (error) {
-            console.error('Error starting farming:', error);
-            this.completeFarming();
+            console.error('Sync error:', error);
         }
     }
 
-    async completeFarming() {
-        clearInterval(this.farmingInterval);
-        clearInterval(this.saveInterval);
+    resumeFarming(elapsedTime) {
+        // Очищаем существующие интервалы
+        if (this.farmingInterval) {
+            clearInterval(this.farmingInterval);
+            this.farmingInterval = null;
+        }
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+            this.saveInterval = null;
+        }
+        if (this.farmingTimeout) {
+            clearTimeout(this.farmingTimeout);
+            this.farmingTimeout = null;
+        }
+
+        // Если прошло больше времени чем длительность фарминга, сразу завершаем
+        if (elapsedTime >= this.farmingDuration) {
+            this.completeFarming();
+            return;
+        }
+
+        this.isActive = true;
+        this.button.classList.add('disabled');
+        this.lastUpdate = Date.now();
+
+        if (!this.button.querySelector('.farming-progress')) {
+            const progressBar = document.createElement('div');
+            progressBar.classList.add('farming-progress');
+            this.button.insertBefore(progressBar, this.buttonContent);
+        }
+
+        const progressBar = this.button.querySelector('.farming-progress');
+        const progress = (elapsedTime / this.farmingDuration) * 100;
+        progressBar.style.width = `${progress}%`;
+
+        // Вычисляем оставшееся время
+        const remainingTime = this.farmingDuration - elapsedTime;
         
-        this.isActive = false;
-        this.startTime = null;
+        // Устанавливаем таймер на точное время завершения
+        this.farmingTimeout = setTimeout(() => {
+            this.completeFarming();
+        }, remainingTime);
+        // Интервал только для обновления UI
+        this.farmingInterval = setInterval(() => {
+            const now = Date.now();
+            const currentElapsed = now - this.startTime;
+            
+            if (currentElapsed >= this.farmingDuration) {
+                clearInterval(this.farmingInterval);
+                return;
+            }
+
+            const earnRate = this.rewardAmount / this.farmingDuration;
+            const totalEarned = earnRate * currentElapsed;
+            
+            this.limeAmount = this.baseAmount + totalEarned;
+            
+            this.updateLimeDisplay();
+            this.levelSystem.addXp(totalEarned * 0.1);
+
+            const progress = (currentElapsed / this.farmingDuration) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
+        }, 50);
+
+        // Сохраняем данные реже
+        this.saveInterval = setInterval(() => {
+            if (this.isActive) {
+                this.saveUserData(this.limeAmount);
+            }
+        }, 5000);
+    }
+
+    startFarming() {
+        this.isActive = true;
         this.farmingCount++;
+        this.startTime = Date.now();
+        this.baseAmount = this.limeAmount;
+        this.resumeFarming(0);
+        this.saveUserData(this.limeAmount);
+        showToast('Farming started! Come back in 30 seconds');
+    }
+
+    async completeFarming() {
+        // Проверяем, не был ли уже завершен фарминг
+        if (!this.isActive) return;
+
+        // Сразу устанавливаем флаг неактивности
+        this.isActive = false;
+
+        // Очищаем все таймеры и интервалы
+        if (this.farmingInterval) {
+            clearInterval(this.farmingInterval);
+            this.farmingInterval = null;
+        }
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+            this.saveInterval = null;
+        }
+        if (this.farmingTimeout) {
+            clearTimeout(this.farmingTimeout);
+            this.farmingTimeout = null;
+        }
         
+        const totalElapsed = Date.now() - this.startTime;
+        const earnRate = this.rewardAmount / this.farmingDuration;
+        const totalEarned = earnRate * Math.min(totalElapsed, this.farmingDuration);
+        this.limeAmount = this.baseAmount + totalEarned;
+        
+        this.startTime = null;
         this.button.classList.remove('disabled');
         this.buttonContent.textContent = 'Start Farming';
         
@@ -331,7 +420,8 @@ class FarmingSystem {
         }
 
         try {
-            await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
+            // Отправляем финальное состояние на сервер и ждем подтверждения
+            const response = await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -342,9 +432,14 @@ class FarmingSystem {
                 })
             });
 
+            if (!response.ok) {
+                throw new Error('Failed to complete farming');
+            }
+
             showToast('Farming completed!');
         } catch (error) {
             console.error('Error completing farming:', error);
+            // В случае ошибки пытаемся сохранить обычным способом
             await this.saveUserData(this.limeAmount);
         }
     }
@@ -404,37 +499,23 @@ class FarmingSystem {
             }
         });
 
-        // Инициализация навигации и секций
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                const section = this.dataset.section;
-                
-                // Скрываем все секции
-                document.querySelector('.main-content').style.display = 'none';
-                document.querySelector('.play-section').style.display = 'none';
-                
-                // Показываем нужную секцию
-                if (section === 'main') {
-                    document.querySelector('.main-content').style.display = 'block';
-                } else if (section === 'play') {
-                    document.querySelector('.play-section').style.display = 'block';
-                }
-                
-                // Обновляем активную навигацию
-                document.querySelectorAll('.nav-item').forEach(nav => {
-                    nav.classList.remove('active');
-                });
-                this.classList.add('active');
-            });
+        // Периодическая синхронизация каждые 10 секунд
+        setInterval(() => {
+            this.syncWithServer();
+        }, 10000);
+
+        // Синхронизация при возвращении вкладки в активное состояние
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                this.syncWithServer();
+            }
         });
 
-        // Инициализация карточек игр
-        document.querySelectorAll('.game-card').forEach((card, index) => {
-            card.style.setProperty('--card-index', index);
+        // Синхронизация при восстановлении подключения к интернету
+        window.addEventListener('online', () => {
+            this.syncWithServer();
         });
 
-        // Проверка достижений каждую секунду
         setInterval(() => {
             this.achievementSystem.checkAchievements({
                 limeAmount: this.limeAmount,
