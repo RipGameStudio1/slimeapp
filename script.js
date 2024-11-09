@@ -42,46 +42,6 @@ function initThemeToggle() {
     });
 }
 
-function initNavigation() {
-    const navItems = document.querySelectorAll('.nav-item');
-    const mainContent = document.querySelector('.main-content');
-    const playContent = document.querySelector('.play-content');
-    const farmingButton = document.querySelector('.farming-button');
-
-    function hideAllSections() {
-        mainContent.style.display = 'none';
-        playContent.style.display = 'none';
-    }
-
-    function showSection(sectionName) {
-        hideAllSections();
-        farmingButton.style.display = 'none'; // Скрываем кнопку по умолчанию
-
-        switch(sectionName) {
-            case 'main':
-                mainContent.style.display = 'block';
-                farmingButton.style.display = 'flex';
-                break;
-            case 'play':
-                playContent.style.display = 'block';
-                break;
-            // Добавьте другие секции по мере их создания
-        }
-    }
-
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            navItems.forEach(navItem => navItem.classList.remove('active'));
-            item.classList.add('active');
-            const section = item.getAttribute('data-section');
-            showSection(section);
-        });
-    });
-
-    // Показываем main section по умолчанию
-    showSection('main');
-}
 class LevelSystem {
     constructor() {
         this.level = 1;
@@ -195,6 +155,7 @@ class AchievementSystem {
         });
     }
 }
+
 class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
@@ -209,7 +170,6 @@ class FarmingSystem {
         this.userId = null;
         this.farmingInterval = null;
         this.saveInterval = null;
-        this.farmingTimeout = null;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
@@ -280,143 +240,58 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
-    async syncWithServer() {
-        try {
-            const response = await fetch(`${API_URL}/api/users/${this.userId}`);
-            if (!response.ok) throw new Error('Sync failed');
-            
-            const serverData = await response.json();
-            
-            if (!serverData.isActive && this.isActive) {
-                await this.completeFarming();
-                return;
-            }
-            
-            if (serverData.isActive && serverData.startTime) {
-                const serverStartTime = new Date(serverData.startTime).getTime();
-                const now = Date.now();
-                const elapsedTime = now - serverStartTime;
-                
-                if (elapsedTime >= this.farmingDuration) {
-                    await this.completeFarming();
-                    return;
-                }
-                
-                if (!this.isActive || this.startTime !== serverStartTime) {
-                    this.startTime = serverStartTime;
-                    this.isActive = true;
-                    this.baseAmount = parseFloat(serverData.limeAmount);
-                    this.resumeFarming(elapsedTime);
-                }
-            }
-            
-            if (!this.isActive) {
-                this.limeAmount = parseFloat(serverData.limeAmount);
-                this.baseAmount = this.limeAmount;
-                this.updateLimeDisplay();
-            }
-            
-            this.farmingCount = serverData.farmingCount;
-            this.levelSystem.level = serverData.level;
-            this.levelSystem.xp = serverData.xp;
-            this.levelSystem.updateDisplay();
-            
-            Object.keys(serverData.achievements || {}).forEach(key => {
-                if (this.achievementSystem.achievements[key]) {
-                    this.achievementSystem.achievements[key].completed = serverData.achievements[key];
-                }
-            });
-            this.achievementSystem.updateDisplay();
-            
-        } catch (error) {
-            console.error('Sync error:', error);
-        }
-    }
 
-    resumeFarming(elapsedTime) {
-        if (this.farmingInterval) clearInterval(this.farmingInterval);
-        if (this.saveInterval) clearInterval(this.saveInterval);
-        if (this.farmingTimeout) clearTimeout(this.farmingTimeout);
-
-        if (elapsedTime >= this.farmingDuration) {
-            this.completeFarming();
-            return;
-        }
-
-        this.isActive = true;
-        this.button.classList.add('disabled');
-        this.lastUpdate = Date.now();
-
-        if (!this.button.querySelector('.farming-progress')) {
-            const progressBar = document.createElement('div');
-            progressBar.classList.add('farming-progress');
-            this.button.insertBefore(progressBar, this.buttonContent);
-        }
-
-        const progressBar = this.button.querySelector('.farming-progress');
-        const progress = (elapsedTime / this.farmingDuration) * 100;
-        progressBar.style.width = `${progress}%`;
-
-        const remainingTime = this.farmingDuration - elapsedTime;
+    async startFarming() {
+        if (this.isActive) return;
         
-        this.farmingTimeout = setTimeout(() => {
-            this.completeFarming();
-        }, remainingTime);
-
-        this.farmingInterval = setInterval(() => {
-            const now = Date.now();
-            const currentElapsed = now - this.startTime;
-            
-            if (currentElapsed >= this.farmingDuration) {
-                clearInterval(this.farmingInterval);
-                return;
-            }
-
-            const earnRate = this.rewardAmount / this.farmingDuration;
-            const totalEarned = earnRate * currentElapsed;
-            
-            this.limeAmount = this.baseAmount + totalEarned;
-            
-            this.updateLimeDisplay();
-            this.levelSystem.addXp(totalEarned * 0.1);
-
-            const progress = (currentElapsed / this.farmingDuration) * 100;
-            progressBar.style.width = `${progress}%`;
-            
-            this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
-        }, 50);
-
-        this.saveInterval = setInterval(() => {
-            if (this.isActive) {
-                this.saveUserData(this.limeAmount);
-            }
-        }, 5000);
-    }
-    startFarming() {
         this.isActive = true;
-        this.farmingCount++;
         this.startTime = Date.now();
         this.baseAmount = this.limeAmount;
-        this.resumeFarming(0);
-        this.saveUserData(this.limeAmount);
-        showToast('Farming started! Come back in 30 seconds');
+        this.button.classList.add('disabled');
+        
+        const progressBar = document.createElement('div');
+        progressBar.classList.add('farming-progress');
+        this.button.insertBefore(progressBar, this.buttonContent);
+        
+        this.buttonContent.textContent = 'Farming...';
+        
+        try {
+            await this.saveUserData(this.limeAmount);
+            
+            this.farmingInterval = setInterval(() => {
+                const now = Date.now();
+                const elapsedTime = now - this.startTime;
+                const progress = (elapsedTime / this.farmingDuration) * 100;
+                
+                if (elapsedTime >= this.farmingDuration) {
+                    this.completeFarming();
+                } else {
+                    const earnRate = this.rewardAmount / this.farmingDuration;
+                    const earned = earnRate * elapsedTime;
+                    this.limeAmount = this.baseAmount + earned;
+                    this.updateLimeDisplay();
+                    progressBar.style.width = `${progress}%`;
+                }
+            }, 50);
+            
+            this.saveInterval = setInterval(() => {
+                this.saveUserData(this.limeAmount);
+            }, 5000);
+            
+        } catch (error) {
+            console.error('Error starting farming:', error);
+            this.completeFarming();
+        }
     }
 
     async completeFarming() {
-        if (!this.isActive) return;
-
+        clearInterval(this.farmingInterval);
+        clearInterval(this.saveInterval);
+        
         this.isActive = false;
-
-        if (this.farmingInterval) clearInterval(this.farmingInterval);
-        if (this.saveInterval) clearInterval(this.saveInterval);
-        if (this.farmingTimeout) clearTimeout(this.farmingTimeout);
-        
-        const totalElapsed = Date.now() - this.startTime;
-        const earnRate = this.rewardAmount / this.farmingDuration;
-        const totalEarned = earnRate * Math.min(totalElapsed, this.farmingDuration);
-        this.limeAmount = this.baseAmount + totalEarned;
-        
         this.startTime = null;
+        this.farmingCount++;
+        
         this.button.classList.remove('disabled');
         this.buttonContent.textContent = 'Start Farming';
         
@@ -426,7 +301,7 @@ class FarmingSystem {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
+            await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -436,10 +311,6 @@ class FarmingSystem {
                     farmingCount: this.farmingCount,
                 })
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to complete farming');
-            }
 
             showToast('Farming completed!');
         } catch (error) {
@@ -503,20 +374,37 @@ class FarmingSystem {
             }
         });
 
-        setInterval(() => {
-            this.syncWithServer();
-        }, 10000);
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                this.syncWithServer();
-            }
+        // Инициализация навигации и секций
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.dataset.section;
+                
+                // Скрываем все секции
+                document.querySelector('.main-content').style.display = 'none';
+                document.querySelector('.play-section').style.display = 'none';
+                
+                // Показываем нужную секцию
+                if (section === 'main') {
+                    document.querySelector('.main-content').style.display = 'block';
+                } else if (section === 'play') {
+                    document.querySelector('.play-section').style.display = 'block';
+                }
+                
+                // Обновляем активную навигацию
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
         });
 
-        window.addEventListener('online', () => {
-            this.syncWithServer();
+        // Инициализация карточек игр
+        document.querySelectorAll('.game-card').forEach((card, index) => {
+            card.style.setProperty('--card-index', index);
         });
 
+        // Проверка достижений каждую секунду
         setInterval(() => {
             this.achievementSystem.checkAchievements({
                 limeAmount: this.limeAmount,
@@ -553,34 +441,107 @@ function hideLoadingIndicator() {
     }
 }
 
-// Инициализация при загрузке страницы
+// Инициализация приложения при загрузке DOM
 document.addEventListener('DOMContentLoaded', () => {
     initUserData();
     initThemeToggle();
-    initNavigation();
     window.farmingSystem = new FarmingSystem();
 
+    // Инициализация игровых карточек
+    const playSection = document.createElement('div');
+    playSection.className = 'play-section';
+    playSection.style.display = 'none';
+    
+    playSection.innerHTML = `
+        <div class="games-container">
+            <div class="game-card">
+                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Dice Game">
+                <div class="game-overlay">
+                    <div class="game-status new">New</div>
+                    <div class="game-title">Dice Game</div>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <span>🎲 Multiplier x2</span>
+                        </div>
+                        <div class="stat">
+                            <span>💰 Min Bet: 10</span>
+                        </div>
+                    </div>
+                    <button class="play-btn">Play Now</button>
+                </div>
+            </div>
+
+            <div class="game-card">
+                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Coin Flip">
+                <div class="game-overlay">
+                    <div class="game-status popular">Popular</div>
+                    <div class="game-title">Coin Flip</div>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <span>🎯 50/50</span>
+                        </div>
+                        <div class="stat">
+                            <span>💰 Min Bet: 5</span>
+                        </div>
+                    </div>
+                    <button class="play-btn">Play Now</button>
+                </div>
+            </div>
+
+            <div class="game-card">
+                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Slots">
+                <div class="game-overlay">
+                    <div class="game-status premium">Premium</div>
+                    <div class="game-title">Slots</div>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <span>🎰 Jackpot</span>
+                        </div>
+                        <div class="stat">
+                            <span>💰 Min Bet: 20</span>
+                        </div>
+                    </div>
+                    <button class="play-btn premium-btn">Play Now</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.querySelector('.container').appendChild(playSection);
+
     // Обработчики для кнопок игр
-    document.querySelectorAll('.game-button').forEach(button => {
-        button.addEventListener('click', function() {
+    document.querySelectorAll('.play-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
             const gameTitle = this.closest('.game-card').querySelector('.game-title').textContent;
+            showToast(`Starting ${gameTitle}...`);
             
-            switch(gameTitle) {
-                case 'Lime Clicker':
-                    startLimeClicker();
-                    break;
-                case 'Lime Runner':
-                    startLimeRunner();
-                    break;
-            }
+            // Здесь можно добавить логику запуска игр
+            this.classList.add('disabled');
+            setTimeout(() => {
+                this.classList.remove('disabled');
+            }, 1500);
+        });
+    });
+
+    // Эффект параллакса для игровых карточек
+    document.querySelectorAll('.game-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const { left, top, width, height } = card.getBoundingClientRect();
+            const x = (e.clientX - left) / width - 0.5;
+            const y = (e.clientY - top) / height - 0.5;
+            
+            const image = card.querySelector('.game-image');
+            image.style.transform = `
+                scale(1.05) 
+                rotateY(${x * 5}deg) 
+                rotateX(${y * -5}deg)
+            `;
+        });
+
+        card.addEventListener('mouseleave', () => {
+            const image = card.querySelector('.game-image');
+            image.style.transform = 'scale(1) rotateY(0) rotateX(0)';
         });
     });
 });
-
-function startLimeClicker() {
-    showToast('Lime Clicker will be available soon!');
-}
-
-function startLimeRunner() {
-    showToast('Lime Runner will be available soon!');
-}
