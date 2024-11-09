@@ -447,7 +447,6 @@ body {
 }
 
 .nav-item.active {
-    background: var(--primary-color);
     color: white;
 }
 
