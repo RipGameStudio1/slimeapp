@@ -1,5 +1,10 @@
-
 const API_URL = 'https://neutral-marylou-slimeapp-2e3dcce0.koyeb.app';
+
+const SECTIONS = {
+    main: document.querySelector('.main-content'),
+    play: document.querySelector('.play-section'),
+    // добавьте другие секции по мере необходимости
+};
 
 function initUserData() {
     const tg = window.Telegram.WebApp;
@@ -42,6 +47,45 @@ function initThemeToggle() {
         icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     });
 }
+
+function switchSection(sectionName) {
+    Object.values(SECTIONS).forEach(section => {
+        if (section) section.style.display = 'none';
+    });
+    
+    if (SECTIONS[sectionName]) {
+        SECTIONS[sectionName].style.display = 'block';
+    }
+    
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === sectionName) {
+            item.classList.add('active');
+        }
+    });
+}
+
+function initializeNavigation() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const section = e.currentTarget.dataset.section;
+            switchSection(section);
+        });
+    });
+    
+    switchSection('main');
+}
+
+function initializeGames() {
+    document.querySelectorAll('.game-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const gameName = e.target.closest('.game-card').querySelector('h3').textContent;
+            showToast(`${gameName} coming soon!`);
+        });
+    });
+}
+
 class LevelSystem {
     constructor() {
         this.level = 1;
@@ -155,6 +199,7 @@ class AchievementSystem {
         });
     }
 }
+
 class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
@@ -240,6 +285,7 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
+
     async syncWithServer() {
         try {
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
@@ -247,25 +293,21 @@ class FarmingSystem {
             
             const serverData = await response.json();
             
-            // Если на сервере фарминг неактивен, но у нас активен
             if (!serverData.isActive && this.isActive) {
                 await this.completeFarming();
                 return;
             }
             
-            // Если на сервере активный фарминг
             if (serverData.isActive && serverData.startTime) {
                 const serverStartTime = new Date(serverData.startTime).getTime();
                 const now = Date.now();
                 const elapsedTime = now - serverStartTime;
                 
-                // Если время фарминга истекло
                 if (elapsedTime >= this.farmingDuration) {
                     await this.completeFarming();
                     return;
                 }
                 
-                // Если на текущем клиенте другое время старта или неактивный фарминг
                 if (!this.isActive || this.startTime !== serverStartTime) {
                     this.startTime = serverStartTime;
                     this.isActive = true;
@@ -274,14 +316,12 @@ class FarmingSystem {
                 }
             }
             
-            // Синхронизация баланса только если фарминг неактивен
             if (!this.isActive) {
                 this.limeAmount = parseFloat(serverData.limeAmount);
                 this.baseAmount = this.limeAmount;
                 this.updateLimeDisplay();
             }
             
-            // Остальная синхронизация
             this.farmingCount = serverData.farmingCount;
             this.levelSystem.level = serverData.level;
             this.levelSystem.xp = serverData.xp;
@@ -300,21 +340,10 @@ class FarmingSystem {
     }
 
     resumeFarming(elapsedTime) {
-        // Очищаем существующие интервалы
-        if (this.farmingInterval) {
-            clearInterval(this.farmingInterval);
-            this.farmingInterval = null;
-        }
-        if (this.saveInterval) {
-            clearInterval(this.saveInterval);
-            this.saveInterval = null;
-        }
-        if (this.farmingTimeout) {
-            clearTimeout(this.farmingTimeout);
-            this.farmingTimeout = null;
-        }
+        if (this.farmingInterval) clearInterval(this.farmingInterval);
+        if (this.saveInterval) clearInterval(this.saveInterval);
+        if (this.farmingTimeout) clearTimeout(this.farmingTimeout);
 
-        // Если прошло больше времени чем длительность фарминга, сразу завершаем
         if (elapsedTime >= this.farmingDuration) {
             this.completeFarming();
             return;
@@ -334,14 +363,12 @@ class FarmingSystem {
         const progress = (elapsedTime / this.farmingDuration) * 100;
         progressBar.style.width = `${progress}%`;
 
-        // Вычисляем оставшееся время
         const remainingTime = this.farmingDuration - elapsedTime;
         
-        // Устанавливаем таймер на точное время завершения
         this.farmingTimeout = setTimeout(() => {
             this.completeFarming();
         }, remainingTime);
-        // Интервал только для обновления UI
+
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
             const currentElapsed = now - this.startTime;
@@ -365,7 +392,6 @@ class FarmingSystem {
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
         }, 50);
 
-        // Сохраняем данные реже
         this.saveInterval = setInterval(() => {
             if (this.isActive) {
                 this.saveUserData(this.limeAmount);
@@ -384,13 +410,10 @@ class FarmingSystem {
     }
 
     async completeFarming() {
-        // Проверяем, не был ли уже завершен фарминг
         if (!this.isActive) return;
 
-        // Сразу устанавливаем флаг неактивности
         this.isActive = false;
 
-        // Очищаем все таймеры и интервалы
         if (this.farmingInterval) {
             clearInterval(this.farmingInterval);
             this.farmingInterval = null;
@@ -419,7 +442,6 @@ class FarmingSystem {
         }
 
         try {
-            // Отправляем финальное состояние на сервер и ждем подтверждения
             const response = await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
                 method: 'POST',
                 headers: {
@@ -438,7 +460,6 @@ class FarmingSystem {
             showToast('Farming completed!');
         } catch (error) {
             console.error('Error completing farming:', error);
-            // В случае ошибки пытаемся сохранить обычным способом
             await this.saveUserData(this.limeAmount);
         }
     }
@@ -554,5 +575,7 @@ function hideLoadingIndicator() {
 document.addEventListener('DOMContentLoaded', () => {
     initUserData();
     initThemeToggle();
+    initializeNavigation();
+    initializeGames();
     window.farmingSystem = new FarmingSystem();
 });
