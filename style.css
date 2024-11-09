@@ -464,7 +464,7 @@ body {
 }
 
 .nav-item.active span {
-    color: var(--accent-color);  /* Тот же цвет для текста */
+    color: var(--text-color);  /* Тот же цвет для текста */
 }
 
 @media (max-width: 480px) {
