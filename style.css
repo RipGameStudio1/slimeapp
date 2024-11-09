@@ -460,7 +460,11 @@ body {
 }
 
 .nav-item.active {
-    color: white;
+    color: var(--accent-color);  /* Используем акцентный цвет вместо белого */
+}
+
+.nav-item.active span {
+    color: var(--accent-color);  /* Тот же цвет для текста */
 }
 
 @media (max-width: 480px) {
