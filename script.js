@@ -253,14 +253,13 @@ class FarmingSystem {
         progressBar.classList.add('farming-progress');
         this.button.insertBefore(progressBar, this.buttonContent);
         
-        this.buttonContent.textContent = 'Farming...';
-        
         try {
             await this.saveUserData(this.limeAmount);
             
             this.farmingInterval = setInterval(() => {
                 const now = Date.now();
                 const elapsedTime = now - this.startTime;
+                const remainingTime = this.farmingDuration - elapsedTime;
                 const progress = (elapsedTime / this.farmingDuration) * 100;
                 
                 if (elapsedTime >= this.farmingDuration) {
@@ -271,6 +270,10 @@ class FarmingSystem {
                     this.limeAmount = this.baseAmount + earned;
                     this.updateLimeDisplay();
                     progressBar.style.width = `${progress}%`;
+                    
+                    // Обновляем текст кнопки с оставшимся временем
+                    const secondsLeft = Math.ceil(remainingTime / 1000);
+                    this.buttonContent.textContent = `Farming... ${secondsLeft}s`;
                 }
             }, 50);
             
