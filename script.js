@@ -20,7 +20,6 @@ function initUserData() {
         avatarElement.style.backgroundSize = 'cover';
         avatarElement.style.backgroundPosition = 'center';
 
-        // Устанавливаем реферальную ссылку
         const referralLink = document.querySelector('.referral-link');
         if (referralLink) {
             referralLink.value = `https://t.me/LimeApp_bot?start=ref${userId}`;
@@ -47,6 +46,7 @@ function initThemeToggle() {
         icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     });
 }
+
 class LevelSystem {
     constructor() {
         this.level = 1;
@@ -62,7 +62,7 @@ class LevelSystem {
     }
 
     getMultiplier() {
-        return 1;
+        return this.multiplier;
     }
 
     addXp(amount) {
@@ -89,7 +89,7 @@ class LevelSystem {
         const progress = (this.xp / requiredXp) * 100;
         
         this.levelElement.textContent = this.level;
-        this.speedElement.textContent = '1x';
+        this.speedElement.textContent = `${this.multiplier}x`;
         this.progressElement.style.width = `${progress}%`;
     }
 }
@@ -160,11 +160,12 @@ class AchievementSystem {
         });
     }
 }
+
 class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
         this.buttonContent = document.querySelector('.farming-button-content');
-        this.farmingDuration = 30 * 1000; // 30 секунд
+        this.farmingDuration = 30 * 1000;
         this.rewardAmount = 70;
         this.isActive = false;
         this.limeAmount = 0;
@@ -175,6 +176,7 @@ class FarmingSystem {
         this.farmingInterval = null;
         this.saveInterval = null;
         this.farmingTimeout = null;
+        this.pendingRewards = 0;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
@@ -203,6 +205,7 @@ class FarmingSystem {
             this.isActive = userData.isActive || false;
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
+            this.pendingRewards = userData.pendingRewards || 0;
     
             if (userData.startTime && this.isActive) {
                 this.startTime = new Date(userData.startTime).getTime();
@@ -236,6 +239,7 @@ class FarmingSystem {
             this.updateLimeDisplay();
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
+            this.updateRewardsUI();
             
             this.init();
         } catch (error) {
@@ -245,6 +249,61 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
+
+    async loadReferrals() {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${this.userId}/referrals`);
+            if (!response.ok) throw new Error('Failed to load referrals');
+            
+            const referrals = await response.json();
+            this.updateReferralsUI(referrals);
+            this.updateRewardsUI();
+        } catch (error) {
+            console.error('Error loading referrals:', error);
+            showToast('Failed to load referrals');
+        }
+    }
+
+    updateRewardsUI() {
+        const rewardsBlock = document.querySelector('.referral-rewards');
+        const rewardsAmount = document.querySelector('.rewards-amount');
+        
+        if (this.pendingRewards > 0) {
+            rewardsBlock.style.display = 'block';
+            rewardsAmount.textContent = this.pendingRewards.toFixed(5);
+        } else {
+            rewardsBlock.style.display = 'none';
+        }
+    }
+
+    updateReferralsUI(referrals) {
+        const container = document.querySelector('.referrals-container');
+        const countElement = document.querySelector('.referrals-count');
+        
+        if (!container || !countElement) return;
+        
+        countElement.textContent = `${referrals.length}/10`;
+        
+        container.innerHTML = referrals.length ? '' : 
+            '<div class="no-referrals">У вас пока нет рефералов</div>';
+        
+        referrals.forEach(referral => {
+            const referralElement = document.createElement('div');
+            referralElement.className = 'referral-item';
+            referralElement.innerHTML = `
+                <div class="referral-avatar"></div>
+                <div class="referral-info">
+                    <div class="referral-name">User ${referral.userId}</div>
+                    <div class="referral-status">Active</div>
+                </div>
+                <div class="referral-earnings">
+                    ${(referral.limeAmount * 0.1).toFixed(5)} $lime
+                </div>
+            `;
+            container.appendChild(referralElement);
+        });
+    }
+
     async syncWithServer() {
         try {
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
@@ -252,25 +311,21 @@ class FarmingSystem {
             
             const serverData = await response.json();
             
-            // Если на сервере фарминг неактивен, но у нас активен
             if (!serverData.isActive && this.isActive) {
                 await this.completeFarming();
                 return;
             }
             
-            // Если на сервере активный фарминг
             if (serverData.isActive && serverData.startTime) {
                 const serverStartTime = new Date(serverData.startTime).getTime();
                 const now = Date.now();
                 const elapsedTime = now - serverStartTime;
                 
-                // Если время фарминга истекло
                 if (elapsedTime >= this.farmingDuration) {
                     await this.completeFarming();
                     return;
                 }
                 
-                // Если на текущем клиенте другое время старта или неактивный фарминг
                 if (!this.isActive || this.startTime !== serverStartTime) {
                     this.startTime = serverStartTime;
                     this.isActive = true;
@@ -279,14 +334,14 @@ class FarmingSystem {
                 }
             }
             
-            // Синхронизация баланса только если фарминг неактивен
             if (!this.isActive) {
                 this.limeAmount = parseFloat(serverData.limeAmount);
                 this.baseAmount = this.limeAmount;
+                this.pendingRewards = serverData.pendingRewards || 0;
                 this.updateLimeDisplay();
+                this.updateRewardsUI();
             }
             
-            // Остальная синхронизация
             this.farmingCount = serverData.farmingCount;
             this.levelSystem.level = serverData.level;
             this.levelSystem.xp = serverData.xp;
@@ -305,21 +360,10 @@ class FarmingSystem {
     }
 
     resumeFarming(elapsedTime) {
-        // Очищаем существующие интервалы
-        if (this.farmingInterval) {
-            clearInterval(this.farmingInterval);
-            this.farmingInterval = null;
-        }
-        if (this.saveInterval) {
-            clearInterval(this.saveInterval);
-            this.saveInterval = null;
-        }
-        if (this.farmingTimeout) {
-            clearTimeout(this.farmingTimeout);
-            this.farmingTimeout = null;
-        }
+        if (this.farmingInterval) clearInterval(this.farmingInterval);
+        if (this.saveInterval) clearInterval(this.saveInterval);
+        if (this.farmingTimeout) clearTimeout(this.farmingTimeout);
 
-        // Если прошло больше времени чем длительность фарминга, сразу завершаем
         if (elapsedTime >= this.farmingDuration) {
             this.completeFarming();
             return;
@@ -339,14 +383,12 @@ class FarmingSystem {
         const progress = (elapsedTime / this.farmingDuration) * 100;
         progressBar.style.width = `${progress}%`;
 
-        // Вычисляем оставшееся время
         const remainingTime = this.farmingDuration - elapsedTime;
         
-        // Устанавливаем таймер на точное время завершения
         this.farmingTimeout = setTimeout(() => {
             this.completeFarming();
         }, remainingTime);
-        // Интервал только для обновления UI
+
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
             const currentElapsed = now - this.startTime;
@@ -370,7 +412,6 @@ class FarmingSystem {
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
         }, 50);
 
-        // Сохраняем данные реже
         this.saveInterval = setInterval(() => {
             if (this.isActive) {
                 this.saveUserData(this.limeAmount);
@@ -389,25 +430,13 @@ class FarmingSystem {
     }
 
     async completeFarming() {
-        // Проверяем, не был ли уже завершен фарминг
         if (!this.isActive) return;
 
-        // Сразу устанавливаем флаг неактивности
         this.isActive = false;
 
-        // Очищаем все таймеры и интервалы
-        if (this.farmingInterval) {
-            clearInterval(this.farmingInterval);
-            this.farmingInterval = null;
-        }
-        if (this.saveInterval) {
-            clearInterval(this.saveInterval);
-            this.saveInterval = null;
-        }
-        if (this.farmingTimeout) {
-            clearTimeout(this.farmingTimeout);
-            this.farmingTimeout = null;
-        }
+        if (this.farmingInterval) clearInterval(this.farmingInterval);
+        if (this.saveInterval) clearInterval(this.saveInterval);
+        if (this.farmingTimeout) clearTimeout(this.farmingTimeout);
         
         const totalElapsed = Date.now() - this.startTime;
         const earnRate = this.rewardAmount / this.farmingDuration;
@@ -424,7 +453,6 @@ class FarmingSystem {
         }
 
         try {
-            // Отправляем финальное состояние на сервер и ждем подтверждения
             const response = await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
                 method: 'POST',
                 headers: {
@@ -440,13 +468,16 @@ class FarmingSystem {
                 throw new Error('Failed to complete farming');
             }
 
+            const data = await response.json();
+            this.pendingRewards = data.pendingRewards || 0;
+            this.updateRewardsUI();
             showToast('Farming completed!');
         } catch (error) {
             console.error('Error completing farming:', error);
-            // В случае ошибки пытаемся сохранить обычным способом
             await this.saveUserData(this.limeAmount);
         }
     }
+
     formatTime(ms) {
         const seconds = Math.floor((ms % (1000 * 60)) / 1000);
         return `${seconds} seconds`;
@@ -480,6 +511,7 @@ class FarmingSystem {
                     startTime: this.startTime ? new Date(this.startTime) : null,
                     level: this.levelSystem.level,
                     xp: this.levelSystem.xp,
+                    pendingRewards: this.pendingRewards,
                     achievements: Object.keys(this.achievementSystem.achievements).reduce((acc, key) => {
                         acc[key] = this.achievementSystem.achievements[key].completed;
                         return acc;
@@ -497,31 +529,56 @@ class FarmingSystem {
 
     initTabs() {
         const navItems = document.querySelectorAll('.nav-item');
-        const mainContent = document.querySelector('.main-content');
-        const referralsContent = document.querySelector('.referrals-content');
+        const contents = document.querySelectorAll('.main-content, .referrals-content');
         
+        function switchContent(fromContent, toContent, direction) {
+            const outClass = direction === 'right' ? 'slide-out-left' : 'slide-out-right';
+            const inClass = direction === 'right' ? 'slide-in-right' : 'slide-in-left';
+
+            fromContent.classList.add(outClass);
+            
+            fromContent.addEventListener('animationend', function handler() {
+                fromContent.classList.remove(outClass);
+                fromContent.classList.add('hidden');
+                fromContent.classList.remove('visible');
+                fromContent.removeEventListener('animationend', handler);
+
+                toContent.classList.remove('hidden');
+                toContent.classList.add(inClass);
+                
+                toContent.addEventListener('animationend', function handler2() {
+                    toContent.classList.remove(inClass);
+                    toContent.classList.add('visible');
+                    toContent.removeEventListener('animationend', handler2);
+                }, { once: true });
+            }, { once: true });
+        }
+
+        let currentSection = 'main';
         navItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
-                const section = item.dataset.section;
+                const newSection = item.dataset.section;
+                if (newSection === currentSection) return;
+
+                const direction = Array.from(navItems).indexOf(item) > 
+                    Array.from(navItems).findIndex(i => i.dataset.section === currentSection)
+                    ? 'right' : 'left';
+
+                const fromContent = document.querySelector(`.${currentSection}-content`);
+                const toContent = document.querySelector(`.${newSection}-content`);
+
+                if (fromContent && toContent) {
+                    switchContent(fromContent, toContent, direction);
+                }
+
+                currentSection = newSection;
                 
-                // Удаляем активный класс со всех пунктов меню
                 navItems.forEach(navItem => navItem.classList.remove('active'));
-                
-                // Добавляем активный класс текущему пункту
                 item.classList.add('active');
-                
-                // Переключаем контент
-                if (section === 'referrals') {
-                    mainContent.classList.remove('visible');
-                    mainContent.classList.add('hidden');
-                    referralsContent.classList.remove('hidden');
-                    referralsContent.classList.add('visible');
-                } else if (section === 'main') {
-                    referralsContent.classList.remove('visible');
-                    referralsContent.classList.add('hidden');
-                    mainContent.classList.remove('hidden');
-                    mainContent.classList.add('visible');
+
+                if (newSection === 'referrals') {
+                    this.loadReferrals();
                 }
             });
         });
@@ -538,16 +595,37 @@ class FarmingSystem {
         });
 
         shareBtn?.addEventListener('click', () => {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Присоединяйся к Lime App!',
-                    text: 'Начни фармить вместе со мной в Lime App!',
-                    url: referralLink.value
-                }).then(() => {
-                    showToast('Спасибо за шаринг!');
-                }).catch(console.error);
+            const tg = window.Telegram.WebApp;
+            if (tg && tg.WebApp) {
+                tg.WebApp.switchInlineQuery(
+                    `Привет! Присоединяйся к Lime App! Используй мою реферальную ссылку: ${referralLink.value}`,
+                    ['users', 'groups']
+                );
             } else {
                 copyBtn.click();
+            }
+        });
+
+        // Добавляем обработчик для кнопки сбора наград
+        const collectBtn = document.querySelector('.collect-rewards-btn');
+        collectBtn?.addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/users/${this.userId}/collect-rewards`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error('Failed to collect rewards');
+                
+                const { collectedAmount } = await response.json();
+                this.limeAmount += collectedAmount;
+                this.pendingRewards = 0;
+                
+                this.updateLimeDisplay();
+                this.updateRewardsUI();
+                showToast(`Collected ${collectedAmount.toFixed(5)} $lime!`);
+            } catch (error) {
+                console.error('Error collecting rewards:', error);
+                showToast('Failed to collect rewards');
             }
         });
     }
@@ -559,19 +637,16 @@ class FarmingSystem {
             }
         });
 
-        // Периодическая синхронизация каждые 10 секунд
         setInterval(() => {
             this.syncWithServer();
         }, 10000);
 
-        // Синхронизация при возвращении вкладки в активное состояние
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 this.syncWithServer();
             }
         });
 
-        // Синхронизация при восстановлении подключения к интернету
         window.addEventListener('online', () => {
             this.syncWithServer();
         });
@@ -580,7 +655,7 @@ class FarmingSystem {
             this.achievementSystem.checkAchievements({
                 limeAmount: this.limeAmount,
                 farmingCount: this.farmingCount,
-                farmingSpeed: 1
+                farmingSpeed: this.levelSystem.getMultiplier()
             });
         }, 1000);
 
