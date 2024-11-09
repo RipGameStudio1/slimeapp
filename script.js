@@ -1,11 +1,5 @@
 const API_URL = 'https://neutral-marylou-slimeapp-2e3dcce0.koyeb.app';
 
-const SECTIONS = {
-    main: document.querySelector('.main-content'),
-    play: document.querySelector('.play-section'),
-    // добавьте другие секции по мере необходимости
-};
-
 function initUserData() {
     const tg = window.Telegram.WebApp;
     
@@ -48,44 +42,46 @@ function initThemeToggle() {
     });
 }
 
-function switchSection(sectionName) {
-    Object.values(SECTIONS).forEach(section => {
-        if (section) section.style.display = 'none';
-    });
-    
-    if (SECTIONS[sectionName]) {
-        SECTIONS[sectionName].style.display = 'block';
-    }
-    
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.dataset.section === sectionName) {
-            item.classList.add('active');
-        }
-    });
-}
+function initNavigation() {
+    const navItems = document.querySelectorAll('.nav-item');
+    const mainContent = document.querySelector('.main-content');
+    const playContent = document.querySelector('.play-content');
+    const farmingButton = document.querySelector('.farming-button');
 
-function initializeNavigation() {
-    document.querySelectorAll('.nav-item').forEach(item => {
+    function hideAllSections() {
+        mainContent.style.display = 'none';
+        playContent.style.display = 'none';
+    }
+
+    function showSection(sectionName) {
+        hideAllSections();
+        farmingButton.style.display = 'none'; // Скрываем кнопку по умолчанию
+
+        switch(sectionName) {
+            case 'main':
+                mainContent.style.display = 'block';
+                farmingButton.style.display = 'flex';
+                break;
+            case 'play':
+                playContent.style.display = 'block';
+                break;
+            // Добавьте другие секции по мере их создания
+        }
+    }
+
+    navItems.forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
-            const section = e.currentTarget.dataset.section;
-            switchSection(section);
+            navItems.forEach(navItem => navItem.classList.remove('active'));
+            item.classList.add('active');
+            const section = item.getAttribute('data-section');
+            showSection(section);
         });
     });
-    
-    switchSection('main');
-}
 
-function initializeGames() {
-    document.querySelectorAll('.game-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const gameName = e.target.closest('.game-card').querySelector('h3').textContent;
-            showToast(`${gameName} coming soon!`);
-        });
-    });
+    // Показываем main section по умолчанию
+    showSection('main');
 }
-
 class LevelSystem {
     constructor() {
         this.level = 1;
@@ -199,7 +195,6 @@ class AchievementSystem {
         });
     }
 }
-
 class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
@@ -285,7 +280,6 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
-
     async syncWithServer() {
         try {
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
@@ -398,7 +392,6 @@ class FarmingSystem {
             }
         }, 5000);
     }
-
     startFarming() {
         this.isActive = true;
         this.farmingCount++;
@@ -414,18 +407,9 @@ class FarmingSystem {
 
         this.isActive = false;
 
-        if (this.farmingInterval) {
-            clearInterval(this.farmingInterval);
-            this.farmingInterval = null;
-        }
-        if (this.saveInterval) {
-            clearInterval(this.saveInterval);
-            this.saveInterval = null;
-        }
-        if (this.farmingTimeout) {
-            clearTimeout(this.farmingTimeout);
-            this.farmingTimeout = null;
-        }
+        if (this.farmingInterval) clearInterval(this.farmingInterval);
+        if (this.saveInterval) clearInterval(this.saveInterval);
+        if (this.farmingTimeout) clearTimeout(this.farmingTimeout);
         
         const totalElapsed = Date.now() - this.startTime;
         const earnRate = this.rewardAmount / this.farmingDuration;
@@ -519,19 +503,16 @@ class FarmingSystem {
             }
         });
 
-        // Периодическая синхронизация каждые 10 секунд
         setInterval(() => {
             this.syncWithServer();
         }, 10000);
 
-        // Синхронизация при возвращении вкладки в активное состояние
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 this.syncWithServer();
             }
         });
 
-        // Синхронизация при восстановлении подключения к интернету
         window.addEventListener('online', () => {
             this.syncWithServer();
         });
@@ -572,10 +553,34 @@ function hideLoadingIndicator() {
     }
 }
 
+// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     initUserData();
     initThemeToggle();
-    initializeNavigation();
-    initializeGames();
+    initNavigation();
     window.farmingSystem = new FarmingSystem();
+
+    // Обработчики для кнопок игр
+    document.querySelectorAll('.game-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const gameTitle = this.closest('.game-card').querySelector('.game-title').textContent;
+            
+            switch(gameTitle) {
+                case 'Lime Clicker':
+                    startLimeClicker();
+                    break;
+                case 'Lime Runner':
+                    startLimeRunner();
+                    break;
+            }
+        });
+    });
 });
+
+function startLimeClicker() {
+    showToast('Lime Clicker will be available soon!');
+}
+
+function startLimeRunner() {
+    showToast('Lime Runner will be available soon!');
+}
