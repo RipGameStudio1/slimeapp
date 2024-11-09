@@ -19,6 +19,12 @@ function initUserData() {
         avatarElement.style.backgroundImage = `url(${photoUrl})`;
         avatarElement.style.backgroundSize = 'cover';
         avatarElement.style.backgroundPosition = 'center';
+
+        // Устанавливаем реферальную ссылку
+        const referralLink = document.querySelector('.referral-link');
+        if (referralLink) {
+            referralLink.value = `https://t.me/LimeApp_bot?start=ref${userId}`;
+        }
     }
 }
 
@@ -441,7 +447,6 @@ class FarmingSystem {
             await this.saveUserData(this.limeAmount);
         }
     }
-
     formatTime(ms) {
         const seconds = Math.floor((ms % (1000 * 60)) / 1000);
         return `${seconds} seconds`;
@@ -490,6 +495,63 @@ class FarmingSystem {
         }
     }
 
+    initTabs() {
+        const navItems = document.querySelectorAll('.nav-item');
+        const mainContent = document.querySelector('.main-content');
+        const referralsContent = document.querySelector('.referrals-content');
+        
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = item.dataset.section;
+                
+                // Удаляем активный класс со всех пунктов меню
+                navItems.forEach(navItem => navItem.classList.remove('active'));
+                
+                // Добавляем активный класс текущему пункту
+                item.classList.add('active');
+                
+                // Переключаем контент
+                if (section === 'referrals') {
+                    mainContent.classList.remove('visible');
+                    mainContent.classList.add('hidden');
+                    referralsContent.classList.remove('hidden');
+                    referralsContent.classList.add('visible');
+                } else if (section === 'main') {
+                    referralsContent.classList.remove('visible');
+                    referralsContent.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                    mainContent.classList.add('visible');
+                }
+            });
+        });
+
+        // Инициализация кнопок копирования и шаринга
+        const copyBtn = document.querySelector('.copy-btn');
+        const shareBtn = document.querySelector('.share-btn');
+        const referralLink = document.querySelector('.referral-link');
+
+        copyBtn?.addEventListener('click', () => {
+            referralLink.select();
+            document.execCommand('copy');
+            showToast('Ссылка скопирована!');
+        });
+
+        shareBtn?.addEventListener('click', () => {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Присоединяйся к Lime App!',
+                    text: 'Начни фармить вместе со мной в Lime App!',
+                    url: referralLink.value
+                }).then(() => {
+                    showToast('Спасибо за шаринг!');
+                }).catch(console.error);
+            } else {
+                copyBtn.click();
+            }
+        });
+    }
+
     init() {
         this.button.addEventListener('click', () => {
             if (!this.isActive) {
@@ -521,6 +583,8 @@ class FarmingSystem {
                 farmingSpeed: 1
             });
         }, 1000);
+
+        this.initTabs();
     }
 }
 
