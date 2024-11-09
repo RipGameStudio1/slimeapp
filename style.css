@@ -435,6 +435,19 @@ body {
 .nav-item[data-section="referrals"]:hover i { color: #9C27B0; }
 .nav-item[data-section="nft"]:hover i { color: #FF5722; }
 
+.nav-item[data-section="main"].active i { color: #4CAF50; }
+.nav-item[data-section="play"].active i { color: #2196F3; }
+.nav-item[data-section="shop"].active i { color: #FFC107; }
+.nav-item[data-section="referrals"].active i { color: #9C27B0; }
+.nav-item[data-section="nft"].active i { color: #FF5722; }
+
+/* Цвета полосок для активных кнопок */
+.nav-item[data-section="main"].active::before { background: #4CAF50; width: 100%; }
+.nav-item[data-section="play"].active::before { background: #2196F3; width: 100%; }
+.nav-item[data-section="shop"].active::before { background: #FFC107; width: 100%; }
+.nav-item[data-section="referrals"].active::before { background: #9C27B0; width: 100%; }
+.nav-item[data-section="nft"].active::before { background: #FF5722; width: 100%; }
+
 /* Анимация пульсации для активной иконки */
 @keyframes pulseIcon {
     0% { transform: scale(1); }
