@@ -84,6 +84,7 @@ body {
     background: rgba(0, 0, 0, 0.05);
 }
 
+/* Main Content Styles */
 .main-content {
     text-align: center;
     margin-top: 30px;
@@ -102,7 +103,7 @@ body {
     color: #636e72;
     font-weight: 500;
 }
-
+/* Stats Container Styles */
 .stats-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -144,12 +145,7 @@ body {
     transition: width 0.3s ease;
 }
 
-.achievements-row {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding: 10px 0;
-    margin-top: 20px
+/* Achievements Styles */
 .achievements-row {
     display: flex;
     gap: 10px;
@@ -197,42 +193,36 @@ body {
     color: #666;
 }
 
-/* Play Section Styles */
-.play-section {
+/* Play Content Styles */
+.play-content {
     padding: 20px;
     min-height: calc(100vh - 200px);
 }
 
 .games-container {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
-    padding: 10px;
+    padding: 20px 0;
 }
 
 .game-card {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 15px;
     overflow: hidden;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .game-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .game-image {
     width: 100%;
     height: 200px;
-    overflow: hidden;
-}
-
-.game-image img {
-    width: 100%;
-    height: 100%;
     object-fit: cover;
 }
 
@@ -241,36 +231,29 @@ body {
     text-align: center;
 }
 
-.game-info h3 {
-    font-size: 24px;
-    margin-bottom: 10px;
+.game-title {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
     color: var(--text-color);
-}
-
-.game-info p {
-    font-size: 14px;
-    color: var(--text-color);
-    opacity: 0.8;
-    margin-bottom: 20px;
 }
 
 .game-button {
     background: var(--accent-color);
     color: var(--text-color);
     border: none;
-    padding: 12px 30px;
+    padding: 10px 25px;
     border-radius: 25px;
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .game-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
-
+/* Farming Button Styles */
 .farming-button {
     position: fixed;
     bottom: 100px;
@@ -342,6 +325,7 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
+/* Navigation Styles */
 .navigation {
     position: fixed;
     bottom: 20px;
@@ -357,6 +341,7 @@ body {
     justify-content: space-around;
     gap: 10px;
     height: 65px;
+    z-index: 1000;
 }
 
 .nav-item {
@@ -400,37 +385,20 @@ body {
 .nav-item:hover i {
     transform: translateY(-2px);
 }
-
-/* Специфичные цвета для каждой кнопки */
+/* Navigation Item Colors */
 .nav-item[data-section="main"]::before { background: #4CAF50; }
 .nav-item[data-section="play"]::before { background: #2196F3; }
 .nav-item[data-section="shop"]::before { background: #FFC107; }
 .nav-item[data-section="referrals"]::before { background: #9C27B0; }
 .nav-item[data-section="nft"]::before { background: #FF5722; }
 
-/* Цвета иконок при наведении */
 .nav-item[data-section="main"]:hover i { color: #4CAF50; }
 .nav-item[data-section="play"]:hover i { color: #2196F3; }
 .nav-item[data-section="shop"]:hover i { color: #FFC107; }
 .nav-item[data-section="referrals"]:hover i { color: #9C27B0; }
 .nav-item[data-section="nft"]:hover i { color: #FF5722; }
 
-/* Анимация пульсации для активной иконки */
-@keyframes pulseIcon {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-.nav-item.active i {
-    animation: pulseIcon 1.5s ease infinite;
-}
-
-.nav-item.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-color);
-}
-
+/* Toast Notification */
 .toast {
     position: fixed;
     top: 20px;
@@ -451,55 +419,7 @@ body {
     transform: translateX(-50%) translateY(0);
 }
 
-@keyframes numberChange {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-.number-change {
-    animation: numberChange 0.3s ease-out;
-}
-
-@keyframes achievementUnlock {
-    0% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-5px) scale(1.05); }
-    100% { transform: translateY(0) scale(1); }
-}
-
-.achievement-card.completed {
-    animation: achievementUnlock 0.5s ease-out;
-}
-
-/* Dark mode */
-[data-theme="dark"] {
-    --background-color: #1a1a1a;
-    --text-color: #ffffff;
-    --nav-bg: rgba(26, 26, 26, 0.95);
-}
-
-[data-theme="dark"] .achievement-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .game-card {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-[data-theme="dark"] .progress-bar {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .farming-button.disabled {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-/* Loading indicator */
+/* Loading Indicator */
 #loading-indicator {
     position: fixed;
     top: 0;
@@ -525,12 +445,58 @@ body {
     margin-bottom: 10px;
 }
 
+/* Animations */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
 
-/* Медиа-запросы для адаптивности */
+@keyframes numberChange {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes achievementUnlock {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.05); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+    --background-color: #1a1a1a;
+    --text-color: #ffffff;
+    --nav-bg: rgba(26, 26, 26, 0.95);
+}
+
+[data-theme="dark"] .achievement-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .farming-button.disabled {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .game-card {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .loading-spinner {
+    border-color: #333;
+    border-top-color: var(--primary-color);
+}
+
+/* Media Queries */
 @media (max-width: 480px) {
     .container {
         padding: 10px;
@@ -569,27 +535,6 @@ body {
         font-size: 20px;
     }
 
-    .game-card {
-        margin-bottom: 15px;
-    }
-
-    .game-image {
-        height: 150px;
-    }
-
-    .game-info h3 {
-        font-size: 20px;
-    }
-
-    .game-info p {
-        font-size: 13px;
-    }
-
-    .game-button {
-        padding: 10px 25px;
-        font-size: 14px;
-    }
-
     .farming-button {
         padding: 12px;
         font-size: 16px;
@@ -615,124 +560,7 @@ body {
         font-size: 12px;
         padding: 10px 20px;
     }
-}
 
-@media (min-width: 768px) {
-    .games-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* Дополнительные эффекты при наведении */
-.achievement-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-/* Плавные переходы для всех элементов */
-* {
-    transition: background-color 0.3s ease,
-                color 0.3s ease,
-                border-color 0.3s ease,
-                box-shadow 0.3s ease;
-}
-
-/* Dark theme дополнительные стили */
-[data-theme="dark"] .loading-spinner {
-    border-color: #333;
-    border-top-color: var(--primary-color);
-}
-
-[data-theme="dark"] #loading-indicator {
-    background: rgba(0, 0, 0, 0.8);
-}
-
-/* Убираем выделение с активных элементов */
-.nav-item:focus,
-.game-button:focus,
-.farming-button:focus,
-.theme-toggle:focus {
-    outline: none;
-}
-
-/* Стили для отключения выделения текста */
-.nav-item,
-.game-button,
-.farming-button,
-.theme-toggle,
-.achievement-card {
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-}
-.play-content {
-    padding: 20px;
-    min-height: calc(100vh - 200px);
-}
-
-.games-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    padding: 20px 0;
-}
-
-.game-card {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.game-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.game-image {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
-
-.game-info {
-    padding: 20px;
-    text-align: center;
-}
-
-.game-title {
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-    color: var(--text-color);
-}
-
-.game-button {
-    background: var(--accent-color);
-    color: var(--text-color);
-    border: none;
-    padding: 10px 25px;
-    border-radius: 25px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.game-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-/* Dark theme specific styles */
-[data-theme="dark"] .game-card {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-/* Mobile responsiveness */
-@media (max-width: 480px) {
     .games-container {
         grid-template-columns: 1fr;
     }
@@ -745,4 +573,12 @@ body {
     .game-image {
         height: 180px;
     }
+}
+
+/* Transitions */
+* {
+    transition: background-color 0.3s ease,
+                color 0.3s ease,
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
 }
