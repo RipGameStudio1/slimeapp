@@ -497,8 +497,35 @@ class FarmingSystem {
             if (!this.isActive) {
                 this.startFarming();
             }
+        });   
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.dataset.section;
+                
+                // Скрываем все секции
+                document.querySelector('.main-content').style.display = 'none';
+                document.querySelector('.play-section').style.display = 'none';
+                
+                // Показываем нужную секцию
+                if (section === 'main') {
+                    document.querySelector('.main-content').style.display = 'block';
+                } else if (section === 'play') {
+                    document.querySelector('.play-section').style.display = 'block';
+                }
+                
+                // Обновляем активную навигацию
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
         });
-
+    
+        // Инициализация карточек игр
+        document.querySelectorAll('.game-card').forEach((card, index) => {
+            card.style.setProperty('--card-index', index);
+        });
         // Периодическая синхронизация каждые 10 секунд
         setInterval(() => {
             this.syncWithServer();
