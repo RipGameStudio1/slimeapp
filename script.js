@@ -194,60 +194,72 @@ class FarmingSystem {
             }
             const userData = await response.json();
             
+            // Загружаем базовые данные
             this.farmingCount = userData.farmingCount || 0;
-            this.isActive = userData.isActive || false;
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
     
-            if (userData.startTime && this.isActive) {
-                this.startTime = new Date(userData.startTime).getTime();
+            // Проверяем статус фарминга
+            if (userData.isActive && userData.startTime) {
+                const startTime = new Date(userData.startTime).getTime();
                 const now = Date.now();
-                const elapsedTime = now - this.startTime;
+                const elapsedTime = now - startTime;
                 
                 if (elapsedTime < this.farmingDuration) {
+                    // Фарминг все еще активен
                     const earnRate = this.rewardAmount / this.farmingDuration;
                     const earnedSoFar = earnRate * elapsedTime;
                     
-                    this.baseAmount = parseFloat(userData.limeAmount) - earnedSoFar;
-                    this.limeAmount = parseFloat(userData.limeAmount);
+                    this.baseAmount = parseFloat(userData.limeAmount);
+                    this.limeAmount = this.baseAmount + earnedSoFar;
+                    this.isActive = true;
+                    this.startTime = startTime;
                     
                     this.resumeFarming(elapsedTime);
                 } else {
-                    // Если прошло больше времени чем длительность фарминга
+                    // Фарминг завершился во время отсутствия
                     const completedFarmings = Math.floor(elapsedTime / this.farmingDuration);
                     const earnedTotal = this.rewardAmount * completedFarmings;
                     
                     this.limeAmount = parseFloat(userData.limeAmount) + earnedTotal;
                     this.baseAmount = this.limeAmount;
                     this.farmingCount += completedFarmings;
-                    
-                    // Сохраняем обновленные данные
-                    await this.saveUserData(this.limeAmount);
-                    
-                    // Показываем уведомление о полученной награде
-                    if (completedFarmings > 0) {
-                        showToast(`Offline farming completed: +${earnedTotal.toFixed(5)} $lime`);
-                    }
-                    
                     this.isActive = false;
                     this.startTime = null;
-                    this.updateLimeDisplay();
+    
+                    if (completedFarmings > 0) {
+                        showToast(`Offline farming completed: +${earnedTotal.toFixed(5)} $lime`);
+                        await this.saveUserData(this.limeAmount);
+                    }
                 }
             } else {
+                // Нет активного фарминга
                 this.limeAmount = parseFloat(userData.limeAmount) || 0;
                 this.baseAmount = this.limeAmount;
+                this.isActive = false;
+                this.startTime = null;
             }
-            
-            Object.keys(userData.achievements || {}).forEach(key => {
-                if (this.achievementSystem.achievements[key]) {
-                    this.achievementSystem.achievements[key].completed = userData.achievements[key];
-                }
-            });
     
+            // Загружаем достижения
+            if (userData.achievements) {
+                Object.keys(userData.achievements).forEach(key => {
+                    if (this.achievementSystem.achievements[key]) {
+                        this.achievementSystem.achievements[key].completed = userData.achievements[key];
+                    }
+                });
+            }
+    
+            // Обновляем отображение
             this.updateLimeDisplay();
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
-            
+    
+            // Обновляем состояние кнопки
+            if (!this.isActive) {
+                this.button.classList.remove('disabled');
+                this.buttonContent.textContent = 'Start Farming';
+            }
+    
             this.init();
         } catch (error) {
             console.error('Error loading user data:', error);
