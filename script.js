@@ -213,9 +213,25 @@ class FarmingSystem {
                     
                     this.resumeFarming(elapsedTime);
                 } else {
-                    this.limeAmount = parseFloat(userData.limeAmount);
+                    // Если прошло больше времени чем длительность фарминга
+                    const completedFarmings = Math.floor(elapsedTime / this.farmingDuration);
+                    const earnedTotal = this.rewardAmount * completedFarmings;
+                    
+                    this.limeAmount = parseFloat(userData.limeAmount) + earnedTotal;
                     this.baseAmount = this.limeAmount;
-                    this.completeFarming();
+                    this.farmingCount += completedFarmings;
+                    
+                    // Сохраняем обновленные данные
+                    await this.saveUserData(this.limeAmount);
+                    
+                    // Показываем уведомление о полученной награде
+                    if (completedFarmings > 0) {
+                        showToast(`Offline farming completed: +${earnedTotal.toFixed(5)} $lime`);
+                    }
+                    
+                    this.isActive = false;
+                    this.startTime = null;
+                    this.updateLimeDisplay();
                 }
             } else {
                 this.limeAmount = parseFloat(userData.limeAmount) || 0;
@@ -240,7 +256,6 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
-
     async startFarming() {
         if (this.isActive) return;
         
