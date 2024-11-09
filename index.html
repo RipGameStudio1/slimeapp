@@ -6,24 +6,24 @@
     <title>Lime App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="slime-background"></div>
     <div class="container">
         <div class="header">
-            <div class="avatar"></div>
-            <div class="user-info">
-                <div class="username"></div>
-                <div class="user-id"></div>
-                <div class="user-status">Online</div>
-            </div>
-            <button class="theme-toggle">
-                <i class="fas fa-moon"></i>
-            </button>
-        </div>
+                        <div class="avatar"></div>
+                        <div class="user-info">
+                                <div class="username"></div>
+                                <div class="user-id"></div>
+                                <div class="user-status">Online</div>
+                        </div>
+                        <button class="theme-toggle">
+                                <i class="fas fa-moon"></i>
+                        </button>
+                </div>
 
-        <div class="main-content visible">
+        <div class="main-content">
             <div class="lime-title">$lime</div>
             <div class="lime-amount">0.00000</div>
             
@@ -60,46 +60,12 @@
             </div>
         </div>
 
-        <div class="referrals-content hidden">
-            <div class="referral-rewards" style="display: none;">
-                <div class="rewards-amount">0.00000</div>
-                <button class="collect-rewards-btn">Collect Rewards</button>
-            </div>
-            <div class="referral-link-block">
-                <div class="referral-link-container">
-                    <input type="text" class="referral-link" readonly value=""/>
-                    <div class="referral-buttons">
-                        <button class="copy-btn">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <button class="share-btn">
-                            <i class="fas fa-share-alt"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="referral-description">
-                    Приглашайте друзей и получайте 10% от их фарминга!
-                    За каждого приглашенного друга вы получите +0.1x к скорости фарминга.
-                </div>
-            </div>
-            
-            <div class="referrals-list">
-                <div class="referrals-header">
-                    <h3>Ваши рефералы</h3>
-                    <span class="referrals-count">0/10</span>
-                </div>
-                <div class="referrals-container">
-                    <!-- Рефералы будут добавляться динамически -->
-                </div>
-            </div>
-        </div>
-
         <button class="farming-button">
             <span class="farming-button-content">Start Farming</span>
         </button>
 
         <nav class="navigation">
-            <a href="#" class="nav-item active" data-section="main">
+            <a href="#" class="nav-item" data-section="main">
                 <i class="fas fa-home"></i>
                 <span>Main</span>
             </a>
@@ -123,6 +89,7 @@
     </div>
 
     <div class="toast" id="toast"></div>
-    <script src="script.js?v=2"></script>
+    <script src="script.js"></script>
+
 </body>
 </html>
