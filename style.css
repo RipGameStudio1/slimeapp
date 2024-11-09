@@ -390,7 +390,6 @@ body {
     padding: 8px 12px;
     border-radius: 12px;
     overflow: hidden;
-    opacity: 0.7;
 }
 
 .nav-item i {
@@ -403,26 +402,71 @@ body {
     font-size: 10px;
 }
 
-.nav-item:hover {
-    opacity: 1;
-    transform: translateY(-2px);
+.nav-item::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    transition: width 0.3s ease;
+}
+
+.nav-item:hover::before {
+    width: 100%;
 }
 
 .nav-item:hover i {
     transform: translateY(-2px);
 }
 
-.nav-item.active {
-    opacity: 1;
-    transform: translateY(-2px);
+/* Специфичные цвета для каждой кнопки */
+.nav-item[data-section="main"]::before { background: #4CAF50; }
+.nav-item[data-section="play"]::before { background: #2196F3; }
+.nav-item[data-section="shop"]::before { background: #FFC107; }
+.nav-item[data-section="referrals"]::before { background: #9C27B0; }
+.nav-item[data-section="nft"]::before { background: #FF5722; }
+
+/* Цвета иконок при наведении */
+.nav-item[data-section="main"]:hover i { color: #4CAF50; }
+.nav-item[data-section="play"]:hover i { color: #2196F3; }
+.nav-item[data-section="shop"]:hover i { color: #FFC107; }
+.nav-item[data-section="referrals"]:hover i { color: #9C27B0; }
+.nav-item[data-section="nft"]:hover i { color: #FF5722; }
+
+/* Анимация пульсации для активной иконки */
+@keyframes pulseIcon {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 
 .nav-item.active i {
-    color: var(--accent-color);
+    animation: pulseIcon 1.5s ease infinite;
 }
 
-.nav-item.active span {
-    color: var(--accent-color);
+.nav-item.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+@media (max-width: 480px) {
+    .navigation {
+        padding: 8px;
+    }
+
+    .nav-item {
+        padding: 8px 10px;
+    }
+
+    .nav-item i {
+        font-size: 16px;
+    }
+
+    .nav-item span {
+        font-size: 8px;
+    }
 }
 
 .toast {
