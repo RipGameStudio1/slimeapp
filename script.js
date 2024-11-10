@@ -171,6 +171,7 @@ class FarmingSystem {
         this.farmingInterval = null;
         this.saveInterval = null;
         this.farmingTimeout = null;
+        this.referralCode = null;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
