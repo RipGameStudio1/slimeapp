@@ -775,3 +775,15 @@ body {
     font-size: 14px;
     color: #666;
 }
+.referral-empty {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 14px;
+    width: 100%;
+}
+
+.referral-row.empty {
+    display: block;
+    border-bottom: none;
+}
