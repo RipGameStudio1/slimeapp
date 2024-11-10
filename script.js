@@ -199,6 +199,7 @@ class FarmingSystem {
             this.isActive = userData.isActive || false;
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
+            this.referralCode = userData.referralCode;
     
             if (userData.startTime && this.isActive) {
                 this.startTime = new Date(userData.startTime).getTime();
@@ -232,6 +233,7 @@ class FarmingSystem {
             this.updateLimeDisplay();
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
+            this.initReferralSystem();
             
             this.init();
         } catch (error) {
@@ -305,6 +307,7 @@ class FarmingSystem {
             if (!response.ok) throw new Error('Failed to load referral data');
             
             const data = await response.json();
+            this.referralCode = data.referralCode; // Обновляем referralCode
             this.updateReferralUI(data);
         } catch (error) {
             console.error('Error loading referral data:', error);
@@ -319,48 +322,57 @@ class FarmingSystem {
 
         // Обновляем реферальную ссылку
         const referralLink = document.getElementById('referral-link');
-        referralLink.value = `https://t.me/your_bot_username?start=${data.referralCode}`;
+        const botUsername = 'your_bot_username'; // Замените на реальное имя вашего бота
+        referralLink.value = `https://t.me/${botUsername}?start=${this.referralCode}`;
 
         // Обновляем список рефералов
         const referralListBody = document.getElementById('referral-list-body');
         referralListBody.innerHTML = '';
 
-        data.referrals.forEach(referral => {
-            const row = document.createElement('div');
-            row.className = 'referral-row';
-            
-            row.innerHTML = `
-                <div class="referral-user">
-                    <div class="referral-avatar"></div>
-                    <span class="referral-name">User ${referral.userId.slice(-4)}</span>
+        if (data.referrals && data.referrals.length > 0) {
+            data.referrals.forEach(referral => {
+                const row = document.createElement('div');
+                row.className = 'referral-row';
+                
+                row.innerHTML = `
+                    <div class="referral-user">
+                        <div class="referral-avatar"></div>
+                        <span class="referral-name">User ${referral.userId.slice(-4)}</span>
+                    </div>
+                    <div class="referral-date">${new Date(referral.joinDate).toLocaleDateString()}</div>
+                    <div class="referral-earnings">${referral.earnings.toFixed(5)}</div>
+                `;
+                
+                referralListBody.appendChild(row);
+            });
+        } else {
+            // Добавляем сообщение, если нет рефералов
+            const emptyRow = document.createElement('div');
+            emptyRow.className = 'referral-row empty';
+            emptyRow.innerHTML = `
+                <div class="referral-empty">
+                    No referrals yet. Share your link to invite friends!
                 </div>
-                <div class="referral-date">${new Date(referral.joinDate).toLocaleDateString()}</div>
-                <div class="referral-earnings">${referral.earnings.toFixed(5)}</div>
             `;
-            
-            referralListBody.appendChild(row);
-        });
+            referralListBody.appendChild(emptyRow);
+        }
     }
+
 
     initReferralSystem() {
         const copyButton = document.getElementById('copy-link');
         const referralLink = document.getElementById('referral-link');
 
-        const baseUrl = 'https://t.me/your_bot_username?start=';
-        const referralCode = window.farmingSystem.userId;
-        referralLink.value = baseUrl + referralCode;
-        
+        // Устанавливаем начальное значение ссылки
+        const botUsername = 'your_bot_username'; // Замените на реальное имя вашего бота
+        referralLink.value = `https://t.me/${botUsername}?start=${this.referralCode}`;
+
         copyButton.addEventListener('click', () => {
             referralLink.select();
             document.execCommand('copy');
             showToast('Referral link copied!');
         });
 
-        const referrals = [
-            { name: 'User 1', joinDate: '2023-09-01', earnings: '0.12345' },
-            { name: 'User 2', joinDate: '2023-09-02', earnings: '0.23456' },
-            { name: 'User 3', joinDate: '2023-09-03', earnings: '0.34567' }
-        ];
         // Загружаем данные при первой инициализации
         this.loadReferralData();
 
