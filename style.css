@@ -373,7 +373,7 @@ body {
     width: calc(100% - 40px);
     max-width: 440px;
     backdrop-filter: blur(10px);
-    background: var(--nav-bg);
+    background: var(--background-color);
     padding: 8px;
     border-radius: 12px;
     display: flex;
