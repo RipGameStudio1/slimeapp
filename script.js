@@ -346,12 +346,21 @@ class FarmingSystem {
         const copyButton = document.getElementById('copy-link');
         const referralLink = document.getElementById('referral-link');
 
+        const baseUrl = 'https://t.me/your_bot_username?start=';
+        const referralCode = window.farmingSystem.userId;
+        referralLink.value = baseUrl + referralCode;
+        
         copyButton.addEventListener('click', () => {
             referralLink.select();
             document.execCommand('copy');
             showToast('Referral link copied!');
         });
 
+        const referrals = [
+            { name: 'User 1', joinDate: '2023-09-01', earnings: '0.12345' },
+            { name: 'User 2', joinDate: '2023-09-02', earnings: '0.23456' },
+            { name: 'User 3', joinDate: '2023-09-03', earnings: '0.34567' }
+        ];
         // Загружаем данные при первой инициализации
         this.loadReferralData();
 
