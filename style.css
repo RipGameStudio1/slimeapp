@@ -1034,28 +1034,8 @@ body {
     animation: valueUpdate 0.5s ease;
 }
 
-.farming-button.active {
-    background-size: 200% 200%;
-    animation: farmingProgress 2s linear infinite;
-}
-
 .nav-item:active i {
     animation: iconPop 0.3s ease;
-}
-
-/* Улучшенные эффекты для игровых карточек */
-.game-card {
-    perspective: 1000px;
-    transform-style: preserve-3d;
-}
-
-.game-overlay {
-    transform: translateZ(20px);
-    transition: transform 0.3s ease;
-}
-
-.game-card:hover .game-overlay {
-    transform: translateZ(40px);
 }
 
 /* Эффект при наведении на статистику рефералов */
