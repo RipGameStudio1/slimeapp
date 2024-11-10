@@ -1059,7 +1059,7 @@ body {
 }
 
 /* Эффект ripple для кнопок */
-.play-btn, .farming-button {
+.play-btn {
     position: relative;
     overflow: hidden;
 }
