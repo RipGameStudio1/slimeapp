@@ -788,13 +788,6 @@ body {
     border-bottom: none;
 }
 
-/* Анимации для чисел */
-@keyframes numberPop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
 /* Анимация для farming button */
 @keyframes pulse {
     0% { transform: translateX(-50%) scale(1); }
