@@ -185,7 +185,7 @@ class FarmingSystem {
             await this.loadUserData();
         }
     }
-
+    
     async loadUserData() {
         showLoadingIndicator();
         try {
@@ -298,6 +298,65 @@ class FarmingSystem {
         } catch (error) {
             console.error('Sync error:', error);
         }
+    }
+    async loadReferralData() {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${this.userId}/referrals`);
+            if (!response.ok) throw new Error('Failed to load referral data');
+            
+            const data = await response.json();
+            this.updateReferralUI(data);
+        } catch (error) {
+            console.error('Error loading referral data:', error);
+            showToast('Failed to load referral data');
+        }
+    }
+
+    updateReferralUI(data) {
+        // Обновляем статистику
+        document.getElementById('referral-count').textContent = data.referralCount;
+        document.getElementById('referral-earnings').textContent = data.totalEarnings.toFixed(5);
+
+        // Обновляем реферальную ссылку
+        const referralLink = document.getElementById('referral-link');
+        referralLink.value = `https://t.me/your_bot_username?start=${data.referralCode}`;
+
+        // Обновляем список рефералов
+        const referralListBody = document.getElementById('referral-list-body');
+        referralListBody.innerHTML = '';
+
+        data.referrals.forEach(referral => {
+            const row = document.createElement('div');
+            row.className = 'referral-row';
+            
+            row.innerHTML = `
+                <div class="referral-user">
+                    <div class="referral-avatar"></div>
+                    <span class="referral-name">User ${referral.userId.slice(-4)}</span>
+                </div>
+                <div class="referral-date">${new Date(referral.joinDate).toLocaleDateString()}</div>
+                <div class="referral-earnings">${referral.earnings.toFixed(5)}</div>
+            `;
+            
+            referralListBody.appendChild(row);
+        });
+    }
+
+    initReferralSystem() {
+        const copyButton = document.getElementById('copy-link');
+        const referralLink = document.getElementById('referral-link');
+
+        copyButton.addEventListener('click', () => {
+            referralLink.select();
+            document.execCommand('copy');
+            showToast('Referral link copied!');
+        });
+
+        // Загружаем данные при первой инициализации
+        this.loadReferralData();
+
+        // Обновляем данные каждые 30 секунд
+        setInterval(() => this.loadReferralData(), 30000);
     }
 
     resumeFarming(elapsedTime) {
@@ -506,12 +565,16 @@ class FarmingSystem {
                 // Скрываем все секции
                 document.querySelector('.main-content').style.display = 'none';
                 document.querySelector('.play-section').style.display = 'none';
+                document.querySelector('.referrals-section').style.display = 'none';
                 
                 // Показываем нужную секцию
                 if (section === 'main') {
                     document.querySelector('.main-content').style.display = 'block';
                 } else if (section === 'play') {
                     document.querySelector('.play-section').style.display = 'block';
+                } else if (section === 'referrals') {
+                    document.querySelector('.referrals-section').style.display = 'block';
+                    window.farmingSystem.loadReferralData(); // Обновляем данные при переключении на вкладку
                 }
                 
                 // Обновляем активную навигацию
@@ -584,6 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initUserData();
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
+    window.farmingSystem.initReferralSystem();
 
     // Инициализация игровых карточек
     const playSection = document.createElement('div');
