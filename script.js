@@ -535,8 +535,17 @@ class FarmingSystem {
         const formattedNumber = this.limeAmount.toFixed(5);
         
         if (limeAmountElement.textContent !== formattedNumber) {
+            limeAmountElement.classList.remove('number-change');
+            void limeAmountElement.offsetWidth; // Trigger reflow
             limeAmountElement.classList.add('number-change');
-            setTimeout(() => limeAmountElement.classList.remove('number-change'), 300);
+            
+            // Добавляем эффект обновления для stat-value
+            const statValues = document.querySelectorAll('.stat-value');
+            statValues.forEach(stat => {
+                stat.classList.remove('updating');
+                void stat.offsetWidth;
+                stat.classList.add('updating');
+            });
         }
         
         limeAmountElement.textContent = formattedNumber;
@@ -646,6 +655,31 @@ function showToast(message) {
         toast.classList.remove('show');
     }, 3000);
 }
+
+function createRipple(event) {
+    const button = event.currentTarget;
+    const ripple = document.createElement('span');
+    const rect = button.getBoundingClientRect();
+    
+    const diameter = Math.max(rect.width, rect.height);
+    const radius = diameter / 2;
+    
+    ripple.style.width = ripple.style.height = `${diameter}px`;
+    ripple.style.left = `${event.clientX - rect.left - radius}px`;
+    ripple.style.top = `${event.clientY - rect.top - radius}px`;
+    
+    ripple.classList.add('ripple');
+    button.appendChild(ripple);
+    
+    ripple.addEventListener('animationend', () => {
+        ripple.remove();
+    });
+}
+
+//обработчики для всех кнопок
+document.querySelectorAll('.play-btn, .farming-button').forEach(button => {
+    button.addEventListener('click', createRipple);
+});
 
 function showLoadingIndicator() {
     const loadingDiv = document.createElement('div');
