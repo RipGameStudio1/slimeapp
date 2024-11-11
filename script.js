@@ -27,6 +27,14 @@ function initThemeToggle() {
     const icon = themeToggle.querySelector('i');
     
     const savedTheme = localStorage.getItem('theme');
+    const themeToggle = document.querySelector('.theme-toggle');
+    themeToggle.addEventListener('click', function() {
+        const icon = this.querySelector('i');
+        icon.style.animation = 'none';
+        // Trigger reflow
+        void icon.offsetWidth;
+        icon.style.animation = 'themeToggleRotate 0.5s ease';
+    });
     if (savedTheme) {
         document.documentElement.setAttribute('data-theme', savedTheme);
         icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
