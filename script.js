@@ -334,7 +334,12 @@ class FarmingSystem {
             if (!response.ok) throw new Error('Failed to load referral data');
             
             const data = await response.json();
-            this.referralCode = data.referralCode; // Обновляем referralCode
+            
+            if (!data.referralCode) {
+                throw new Error('Referral code is missing in response');
+            }
+            
+            this.referralCode = data.referralCode; // Сохраняем код
             this.updateReferralUI(data);
         } catch (error) {
             console.error('Error loading referral data:', error);
@@ -346,11 +351,17 @@ class FarmingSystem {
         // Обновляем статистику
         document.getElementById('referral-count').textContent = data.referralCount;
         document.getElementById('referral-earnings').textContent = data.totalEarnings.toFixed(5);
-
+    
         // Обновляем реферальную ссылку
         const referralLink = document.getElementById('referral-link');
-        const botUsername = 'your_bot_username'; // Замените на реальное имя вашего бота
-        referralLink.value = `https://t.me/${botUsername}?start=${this.referralCode}`;
+        if (data.referralCode) { // Проверяем наличие кода
+            const botUsername = 'LimeSlimeBot'; // Имя вашего бота
+            referralLink.value = `https://t.me/${botUsername}?start=${data.referralCode}`;
+        } else {
+            console.error('Referral code is missing');
+            referralLink.value = 'Loading...';
+            // Попробуем загрузить код еще раз
+            this.loadReferralData();
 
         // Обновляем список рефералов
         const referralListBody = document.getElementById('referral-list-body');
@@ -389,20 +400,26 @@ class FarmingSystem {
     initReferralSystem() {
         const copyButton = document.getElementById('copy-link');
         const referralLink = document.getElementById('referral-link');
-
-        // Устанавливаем начальное значение ссылки
-        const botUsername = 'your_bot_username'; // Замените на реальное имя вашего бота
-        referralLink.value = `https://t.me/${botUsername}?start=${this.referralCode}`;
-
+    
+        if (this.referralCode) {
+            const botUsername = 'LimeSlimeBot'; // Имя вашего бота
+            referralLink.value = `https://t.me/${botUsername}?start=${this.referralCode}`;
+        }
+    
         copyButton.addEventListener('click', () => {
-            referralLink.select();
-            document.execCommand('copy');
-            showToast('Referral link copied!');
+            if (this.referralCode) {
+                referralLink.select();
+                document.execCommand('copy');
+                showToast('Referral link copied!');
+            } else {
+                showToast('Please wait, loading referral link...');
+                this.loadReferralData();
+            }
         });
-
+    
         // Загружаем данные при первой инициализации
         this.loadReferralData();
-
+    
         // Обновляем данные каждые 30 секунд
         setInterval(() => this.loadReferralData(), 30000);
     }
