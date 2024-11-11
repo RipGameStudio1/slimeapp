@@ -790,7 +790,7 @@ function initBackgroundEffect() {
                 field += getBlobField(uv, blobs[i], 0.065);
             }
     
-            vec3 blobColor = vec3(1.0, 0.106, 0.110); // Базовый цвет
+            vec3 blobColor = vec3(0.796, 0.910, 0.588); // Базовый цвет
             
             if (isDark) {
                 blobColor *= 0.5; // Темнее для тёмной темы
