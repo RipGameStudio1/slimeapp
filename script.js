@@ -795,7 +795,7 @@ function initBackgroundEffect() {
             if (isDark) {
                 blobColor *= 0.7; // Темнее для тёмной темы
             } else {
-                blobColor *= 0.4; // Темнее для светлой темы (было 1.0)
+                blobColor *= 0; // Темнее для светлой темы (было 1.0)
             }
             
             float alpha = smoothstep(1.0, 1.0, field) * 0.3;
