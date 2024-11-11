@@ -790,15 +790,15 @@ function initBackgroundEffect() {
                 field += getBlobField(uv, blobs[i], 0.065);
             }
     
-            vec3 blobColor = vec3(0.9, 0.7, 0.7); // Базовый цвет
+            vec3 blobColor = vec3(0.9, 0.6, 0.2); // Базовый цвет
             
             if (isDark) {
-                blobColor *= 0.7; // Темнее для тёмной темы
+                blobColor *= 0.5; // Темнее для тёмной темы
             } else {
-                blobColor *= 0.0; // Темнее для светлой темы (было 1.0)
+                blobColor *= 0.5; // Темнее для светлой темы (было 1.0)
             }
             
-            float alpha = smoothstep(1.0, 1.0, field) * 0.3;
+            float alpha = smoothstep(1.0, 1.0, field) * 0.5;
             
             gl_FragColor = vec4(blobColor, alpha);
         }
