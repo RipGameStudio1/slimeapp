@@ -330,84 +330,104 @@ class FarmingSystem {
     }
     async loadReferralData() {
         try {
+            console.log('Loading referral data...'); // Отладочный лог
             const response = await fetch(`${API_URL}/api/users/${this.userId}/referrals`);
-            if (!response.ok) throw new Error('Failed to load referral data');
+            
+            if (!response.ok) {
+                console.error('Response not OK:', response.status, response.statusText);
+                throw new Error('Failed to load referral data');
+            }
             
             const data = await response.json();
+            console.log('Received referral data:', data); // Отладочный лог
             
             if (!data.referralCode) {
+                console.error('No referral code in response');
                 throw new Error('Referral code is missing in response');
             }
             
-            this.referralCode = data.referralCode; // Сохраняем код
+            this.referralCode = data.referralCode;
             this.updateReferralUI(data);
         } catch (error) {
             console.error('Error loading referral data:', error);
-            showToast('Failed to load referral data');
+            // Показываем более информативное сообщение об ошибке
+            showToast(`Failed to load referral data: ${error.message}`);
         }
     }
-
+    
     updateReferralUI(data) {
+        console.log('Updating referral UI with data:', data); // Отладочный лог
+    
         // Обновляем статистику
-        document.getElementById('referral-count').textContent = data.referralCount;
-        document.getElementById('referral-earnings').textContent = data.totalEarnings.toFixed(5);
+        const countElement = document.getElementById('referral-count');
+        const earningsElement = document.getElementById('referral-earnings');
+        const referralLink = document.getElementById('referral-link');
+    
+        if (countElement) countElement.textContent = data.referralCount || 0;
+        if (earningsElement) earningsElement.textContent = (data.totalEarnings || 0).toFixed(5);
     
         // Обновляем реферальную ссылку
-        const referralLink = document.getElementById('referral-link');
-        if (data.referralCode) { // Проверяем наличие кода
-            const botUsername = 'LimeSlimeBot'; // Имя вашего бота
-            referralLink.value = `https://t.me/${botUsername}?start=${data.referralCode}`;
+        if (referralLink) {
+            if (data.referralCode) {
+                const botUsername = 'LimeSlimeBot'; // Убедитесь, что это правильное имя бота
+                referralLink.value = `https://t.me/${botUsername}?start=${data.referralCode}`;
+            } else {
+                referralLink.value = 'Loading...';
+            }
         } else {
-            console.error('Referral code is missing');
-            referralLink.value = 'Loading...';
-            // Попробуем загрузить код еще раз
-            this.loadReferralData();
+            console.error('Referral link element not found');
         }
+    
         // Обновляем список рефералов
         const referralListBody = document.getElementById('referral-list-body');
-        referralListBody.innerHTML = '';
-
-        if (data.referrals && data.referrals.length > 0) {
-            data.referrals.forEach(referral => {
-                const row = document.createElement('div');
-                row.className = 'referral-row';
-                
-                row.innerHTML = `
-                    <div class="referral-user">
-                        <div class="referral-avatar"></div>
-                        <span class="referral-name">User ${referral.userId.slice(-4)}</span>
+        if (referralListBody) {
+            referralListBody.innerHTML = ''; // Очищаем текущий список
+    
+            if (data.referrals && data.referrals.length > 0) {
+                data.referrals.forEach(referral => {
+                    const row = document.createElement('div');
+                    row.className = 'referral-row';
+                    row.innerHTML = `
+                        <div class="referral-user">
+                            <div class="referral-avatar"></div>
+                            <span class="referral-name">User ${referral.userId.slice(-4)}</span>
+                        </div>
+                        <div class="referral-date">${new Date(referral.joinDate).toLocaleDateString()}</div>
+                        <div class="referral-earnings">${referral.earnings.toFixed(5)}</div>
+                    `;
+                    referralListBody.appendChild(row);
+                });
+            } else {
+                const emptyRow = document.createElement('div');
+                emptyRow.className = 'referral-row empty';
+                emptyRow.innerHTML = `
+                    <div class="referral-empty">
+                        No referrals yet. Share your link to invite friends!
                     </div>
-                    <div class="referral-date">${new Date(referral.joinDate).toLocaleDateString()}</div>
-                    <div class="referral-earnings">${referral.earnings.toFixed(5)}</div>
                 `;
-                
-                referralListBody.appendChild(row);
-            });
+                referralListBody.appendChild(emptyRow);
+            }
         } else {
-            // Добавляем сообщение, если нет рефералов
-            const emptyRow = document.createElement('div');
-            emptyRow.className = 'referral-row empty';
-            emptyRow.innerHTML = `
-                <div class="referral-empty">
-                    No referrals yet. Share your link to invite friends!
-                </div>
-            `;
-            referralListBody.appendChild(emptyRow);
+            console.error('Referral list body element not found');
         }
     }
-
-
+    
     initReferralSystem() {
+        console.log('Initializing referral system...'); // Отладочный лог
+        
         const copyButton = document.getElementById('copy-link');
         const referralLink = document.getElementById('referral-link');
     
-        if (this.referralCode) {
-            const botUsername = 'LimeSlimeBot'; // Имя вашего бота
-            referralLink.value = `https://t.me/${botUsername}?start=${this.referralCode}`;
+        if (!copyButton || !referralLink) {
+            console.error('Required referral elements not found');
+            return;
         }
     
+        // Начальная загрузка данных
+        this.loadReferralData();
+    
         copyButton.addEventListener('click', () => {
-            if (this.referralCode) {
+            if (referralLink.value && referralLink.value !== 'Loading...') {
                 referralLink.select();
                 document.execCommand('copy');
                 showToast('Referral link copied!');
@@ -417,10 +437,7 @@ class FarmingSystem {
             }
         });
     
-        // Загружаем данные при первой инициализации
-        this.loadReferralData();
-    
-        // Обновляем данные каждые 30 секунд
+        // Периодическое обновление данных
         setInterval(() => this.loadReferralData(), 30000);
     }
 
