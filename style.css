@@ -14,19 +14,40 @@
 }
 
 body {
-    background: var(--background-color);
+    margin: 0;
+    padding: 0;
     min-height: 100vh;
+    background: transparent;
     color: var(--text-color);
+    font-family: 'Segoe UI', sans-serif;
+    overflow-x: hidden;
     transition: background-color 0.3s ease;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
 .container {
+    position: relative;
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
-    position: relative;
     padding: 20px;
-    padding-bottom: 85px;
+    padding-bottom: 160px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 1;
 }
 
 .header {
@@ -112,7 +133,10 @@ body {
 .stat-card {
     padding: 15px;
     text-align: left;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
 }
 
 .stat-title {
@@ -193,7 +217,7 @@ body {
 
 .farming-button {
     position: fixed;
-    bottom: 85px;
+    bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 40px);
@@ -211,6 +235,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 10px;
+    z-index: 99;
     overflow: hidden;
 }
 
@@ -240,7 +265,94 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* Новые стили для секции Play */
+.navigation {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 440px;
+    background: var(--nav-bg);
+    backdrop-filter: blur(10px);
+    padding: 8px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+    height: 65px;
+    z-index: 100;
+}
+
+.nav-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+    padding: 8px 12px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.nav-item i {
+    font-size: 18px;
+    margin-bottom: 3px;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.nav-item span {
+    font-size: 10px;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    transition: width 0.3s ease;
+}
+
+.nav-item:hover::before {
+    width: 100%;
+}
+
+.nav-item:hover i {
+    transform: translateY(-2px);
+}
+
+/* Специфичные цвета для каждой кнопки */
+.nav-item[data-section="main"]::before { background: #4CAF50; }
+.nav-item[data-section="play"]::before { background: #2196F3; }
+.nav-item[data-section="shop"]::before { background: #FFC107; }
+.nav-item[data-section="referrals"]::before { background: #9C27B0; }
+.nav-item[data-section="nft"]::before { background: #FF5722; }
+
+/* Цвета иконок при наведении */
+.nav-item[data-section="main"]:hover i { color: #4CAF50; }
+.nav-item[data-section="play"]:hover i { color: #2196F3; }
+.nav-item[data-section="shop"]:hover i { color: #FFC107; }
+.nav-item[data-section="referrals"]:hover i { color: #9C27B0; }
+.nav-item[data-section="nft"]:hover i { color: #FF5722; }
+
+.nav-item[data-section="main"].active i { color: #4CAF50; }
+.nav-item[data-section="play"].active i { color: #2196F3; }
+.nav-item[data-section="shop"].active i { color: #FFC107; }
+.nav-item[data-section="referrals"].active i { color: #9C27B0; }
+.nav-item[data-section="nft"].active i { color: #FF5722; }
+
+/* Цвета полосок для активных кнопок */
+.nav-item[data-section="main"].active::before { background: #4CAF50; width: 100%; }
+.nav-item[data-section="play"].active::before { background: #2196F3; width: 100%; }
+.nav-item[data-section="shop"].active::before { background: #FFC107; width: 100%; }
+.nav-item[data-section="referrals"].active::before { background: #9C27B0; width: 100%; }
+.nav-item[data-section="nft"].active::before { background: #FF5722; width: 100%; }
+
+/* Play Section Styles */
 .play-section {
     padding: 20px;
 }
@@ -251,7 +363,7 @@ body {
     gap: 20px;
     max-width: 600px;
     margin: 0 auto;
-    padding-bottom: 80px
+    padding-bottom: 80px;
 }
 
 .game-card {
@@ -359,261 +471,9 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.premium-btn {
-    background: linear-gradient(45deg, #FFD700, #FFA500);
-    color: black;
-}
-
-.navigation {
-    position: fixed;
-    bottom: 0px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 40px);
-    max-width: 440px;
-    backdrop-filter: blur(10px);
-    background: var(--background-color);
-    padding: 8px;
-    border-radius: 12px;
-    display: flex;
-    justify-content: space-around;
-    gap: 10px;
-    height: 65px;
-}
-
-.nav-item {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-decoration: none;
-    color: var(--text-color);
-    transition: all 0.3s ease;
-    padding: 8px 12px;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.nav-item i {
-    font-size: 18px;
-    margin-bottom: 3px;
-    transition: transform 0.3s ease, color 0.3s ease;
-}
-
-.nav-item span {
-    font-size: 10px;
-}
-
-.nav-item::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 3px;
-    transition: width 0.3s ease;
-}
-
-.nav-item:hover::before {
-    width: 100%;
-}
-
-.nav-item:hover i {
-    transform: translateY(-2px);
-}
-
-/* Специфичные цвета для каждой кнопки */
-.nav-item[data-section="main"]::before { background: #4CAF50; }
-.nav-item[data-section="play"]::before { background: #2196F3; }
-.nav-item[data-section="shop"]::before { background: #FFC107; }
-.nav-item[data-section="referrals"]::before { background: #9C27B0; }
-.nav-item[data-section="nft"]::before { background: #FF5722; }
-
-/* Цвета иконок при наведении */
-.nav-item[data-section="main"]:hover i { color: #4CAF50; }
-.nav-item[data-section="play"]:hover i { color: #2196F3; }
-.nav-item[data-section="shop"]:hover i { color: #FFC107; }
-.nav-item[data-section="referrals"]:hover i { color: #9C27B0; }
-.nav-item[data-section="nft"]:hover i { color: #FF5722; }
-
-.nav-item[data-section="main"].active i { color: #4CAF50; }
-.nav-item[data-section="play"].active i { color: #2196F3; }
-.nav-item[data-section="shop"].active i { color: #FFC107; }
-.nav-item[data-section="referrals"].active i { color: #9C27B0; }
-.nav-item[data-section="nft"].active i { color: #FF5722; }
-
-/* Цвета полосок для активных кнопок */
-.nav-item[data-section="main"].active::before { background: #4CAF50; width: 100%; }
-.nav-item[data-section="play"].active::before { background: #2196F3; width: 100%; }
-.nav-item[data-section="shop"].active::before { background: #FFC107; width: 100%; }
-.nav-item[data-section="referrals"].active::before { background: #9C27B0; width: 100%; }
-.nav-item[data-section="nft"].active::before { background: #FF5722; width: 100%; }
-
-/* Анимация пульсации для активной иконки */
-@keyframes pulseIcon {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-.nav-item.active i {
-    animation: pulseIcon 1.5s ease infinite;
-}
-
-.nav-item.active span {
-    color: var(--text-color);  /* Тот же цвет для текста */
-}
-
-@media (max-width: 480px) {
-    .games-container {
-        padding-bottom: 100px;
-    }
-    
-    .navigation {
-        padding: 8px;
-    }
-
-    .nav-item {
-        padding: 8px 10px;
-    }
-
-    .nav-item i {
-        font-size: 16px;
-    }
-
-    .nav-item span {
-        font-size: 8px;
-    }
-}
-
-.toast {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-100px);
-    background: var(--primary-color);
-    color: white;
-    padding: 12px 24px;
-    border-radius: 50px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: transform 0.3s ease;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.toast.show {
-    transform: translateX(-50%) translateY(0);
-}
-
-/* Анимации */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes numberChange {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-@keyframes achievementUnlock {
-    0% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-5px) scale(1.05); }
-    100% { transform: translateY(0) scale(1); }
-}
-
-/* Dark mode */
-[data-theme="dark"] {
-    --background-color: #1a1a1a;
-    --text-color: #ffffff;
-    --nav-bg: rgba(26, 26, 26, 0.95);
-}
-
-[data-theme="dark"] .achievement-card {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .progress-bar {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .farming-button.disabled {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-/* Медиа-запросы */
-@media (max-width: 480px) {
-    .container {
-        padding: 10px;
-    }
-
-    .header {
-        padding: 15px;
-    }
-
-    .lime-title {
-        font-size: 62px;
-    }
-
-    .lime-amount {
-        font-size: 20px;
-    }
-
-    .stats-container {
-        gap: 10px;
-    }
-
-    .stat-card {
-        padding: 12px;
-    }
-
-    .stat-value {
-        font-size: 20px;
-    }
-
-    .navigation {
-        padding: 8px;
-    }
-
-    .nav-item {
-        padding: 8px 10px;
-    }
-
-    .nav-item i {
-        font-size: 16px;
-    }
-
-    .nav-item span {
-        font-size: 8px;
-    }
-
-    .games-container {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (min-width: 768px) {
-    .games-container {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    }
-}
 /* Referrals Section Styles */
 .referrals-section {
-    padding: 0px;
+    padding: 20px;
     padding-bottom: 100px;
 }
 
@@ -657,17 +517,6 @@ body {
 .stat-info {
     display: flex;
     flex-direction: column;
-}
-
-.stat-value {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-color);
-}
-
-.stat-label {
-    font-size: 12px;
-    color: #666;
 }
 
 .referral-link-container {
@@ -746,6 +595,7 @@ body {
     grid-template-columns: 2fr 1fr 1fr;
     padding: 15px;
     border-bottom: 1px solid rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
 }
 
 .referral-row:last-child {
@@ -775,202 +625,62 @@ body {
     font-size: 14px;
     color: #666;
 }
+
 .referral-empty {
     text-align: center;
     padding: 20px;
     color: #666;
     font-size: 14px;
-    width: 100%;
 }
 
-.referral-row.empty {
-    display: block;
-    border-bottom: none;
-}
-
-/* Анимация для farming button */
-@keyframes pulse {
-    0% { transform: translateX(-50%) scale(1); }
-    50% { transform: translateX(-50%) scale(1.02); }
-    100% { transform: translateX(-50%) scale(1); }
-}
-
-/* Анимация для достижений */
-@keyframes achievementShine {
-    0% { background-position: -100% 0; }
-    100% { background-position: 200% 0; }
-}
-
-/* Анимация для карточек статистики */
-@keyframes floatCard {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-    100% { transform: translateY(0); }
-}
-
-/* Анимация для иконок */
-@keyframes iconSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Применение анимаций */
-.lime-amount.number-change {
-    animation: numberPop 0.3s ease;
-}
-
-.farming-button:not(.disabled):hover {
-    animation: pulse 1.5s infinite;
-}
-
-.achievement-card.completed {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    background-size: 200% 100%;
-    animation: achievementShine 2s infinite linear;
-}
-
-.stat-card:hover {
-    animation: floatCard 2s infinite ease-in-out;
-}
-
-.achievement-card i {
+/* Toast Notification */
+.toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: var(--primary-color);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 500;
     transition: transform 0.3s ease;
-}
-
-.achievement-card:hover i {
-    animation: iconSpin 1s ease;
-}
-
-/* Анимация для навигации */
-.nav-item {
-    transition: transform 0.3s ease, background-color 0.3s ease;
-}
-
-.nav-item:hover {
-    transform: translateY(-2px);
-}
-
-/* Анимация для кнопок в играх */
-.play-btn {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.play-btn::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: rgba(255,255,255,0.1);
-    transform: rotate(45deg);
-    transition: transform 0.5s ease;
-}
-
-.play-btn:hover::after {
-    transform: rotate(45deg) translate(50%, 50%);
-}
-
-/* Анимация для карточек рефералов */
-.referral-row {
-    transition: transform 0.3s ease, background-color 0.3s ease;
-}
-
-.referral-row:hover {
-    transform: scale(1.02);
-    background: rgba(var(--primary-color-rgb), 0.05);
-}
-
-/* Анимация для копирования реферальной ссылки */
-@keyframes copySuccess {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-/* Анимация для прогресс-бара уровня */
-@keyframes progressGlow {
-    0% { box-shadow: 0 0 5px var(--accent-color); }
-    50% { box-shadow: 0 0 15px var(--accent-color); }
-    100% { box-shadow: 0 0 5px var(--accent-color); }
-}
-
-/* Анимация для аватара */
-@keyframes avatarPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-/* Анимация для статуса онлайн */
-@keyframes statusBlink {
-    0% { opacity: 0.7; }
-    50% { opacity: 1; }
-    100% { opacity: 0.7; }
-}
-
-/* Анимация для заголовка */
-@keyframes titleFloat {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-    100% { transform: translateY(0); }
-}
-
-/* Применение новых анимаций */
-.avatar:hover {
-    animation: avatarPulse 1s infinite ease-in-out;
-}
-
-.user-status {
-    animation: statusBlink 2s infinite;
-}
-
-.lime-title {
-    animation: titleFloat 3s infinite ease-in-out;
-}
-
-.progress-fill {
-    animation: progressGlow 2s infinite;
-}
-
-#copy-link:active i {
-    animation: copySuccess 0.3s ease;
-}
-
-/* Улучшенные стили для интерактивных элементов */
-.stat-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.achievement-card {
-    transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.achievement-card:hover {
-    transform: translateY(-5px) scale(1.02);
-}
-
-/* Анимация для toast сообщений */
-@keyframes toastSlide {
-    0% { transform: translateX(-50%) translateY(-100px); opacity: 0; }
-    15% { transform: translateX(-50%) translateY(20px); opacity: 1; }
-    85% { transform: translateX(-50%) translateY(20px); opacity: 1; }
-    100% { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .toast.show {
-    animation: toastSlide 3s ease forwards;
+    transform: translateX(-50%) translateY(0);
 }
 
-/* Анимация для загрузки секций */
-@keyframes sectionFadeIn {
+/* Loading Indicator */
+#loading-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--primary-color);
+    border-top: 4px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+
+/* Animations */
+@keyframes fadeInUp {
     from {
         opacity: 0;
         transform: translateY(20px);
@@ -981,82 +691,98 @@ body {
     }
 }
 
-.main-content, .play-section, .referrals-section {
-    animation: sectionFadeIn 0.5s ease forwards;
-}
-
-/* Анимация для кнопки темы */
-@keyframes themeToggleRotate {
+@keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
 
-.theme-toggle:hover i {
-    animation: themeToggleRotate 0.5s ease;
-}
-
-/* Анимация для обновления значений */
-@keyframes valueUpdate {
-    0% { transform: scale(1); color: var(--accent-color); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); color: var(--text-color); }
-}
-
-/* Анимация для игровых карточек */
-@keyframes cardHover {
-    0% { transform: rotate3d(0, 0, 0, 0deg); }
-    100% { transform: rotate3d(var(--rx), var(--ry), 0, var(--r)); }
-}
-
-/* Анимация для кнопки фарминга во время процесса */
-@keyframes farmingProgress {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* Анимация для иконок навигации */
-@keyframes iconPop {
+@keyframes numberChange {
     0% { transform: scale(1); }
-    40% { transform: scale(1.3); }
+    50% { transform: scale(1.1); }
     100% { transform: scale(1); }
 }
 
-/* Применение дополнительных анимаций */
-.stat-value.updating {
-    animation: valueUpdate 0.5s ease;
+@keyframes achievementUnlock {
+    0% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.05); }
+    100% { transform: translateY(0) scale(1); }
 }
 
-.nav-item:active i {
-    animation: iconPop 0.3s ease;
+/* Dark Theme */
+[data-theme="dark"] {
+    --background-color: #1a1a1a;
+    --text-color: #ffffff;
+    --nav-bg: rgba(26, 26, 26, 0.95);
 }
 
-/* Эффект при наведении на статистику рефералов */
-.referral-stats .stat-box {
-    transition: all 0.3s ease;
-    transform-origin: center;
+[data-theme="dark"] .container {
+    background: rgba(26, 26, 26, 0.8);
 }
 
-.referral-stats .stat-box:hover {
-    transform: scale(1.03) translateY(-5px);
+[data-theme="dark"] .achievement-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Анимация для пустого состояния рефералов */
-@keyframes emptyStateFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+[data-theme="dark"] .progress-bar {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-.referral-empty {
-    animation: emptyStateFloat 3s ease-in-out infinite;
+[data-theme="dark"] .farming-button.disabled {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* Эффект ripple для кнопок */
-.play-btn {
-    position: relative;
-    overflow: hidden;
+[data-theme="dark"] .theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
+/* Responsive Design */
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+        padding-bottom: 160px;
+    }
+
+    .header {
+        padding: 15px;
+    }
+
+    .lime-title {
+        font-size: 62px;
+    }
+
+    .lime-amount {
+        font-size: 20px;
+    }
+
+    .stats-container {
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .navigation {
+        bottom: 10px;
+        width: calc(100% - 20px);
+    }
+
+    .farming-button {
+        bottom: 90px;
+        width: calc(100% - 20px);
+    }
+
+    .games-container {
+        padding-bottom: 100px;
+    }
+}
+
+/* Ripple Effect */
 .ripple {
     position: absolute;
     border-radius: 50%;
@@ -1073,94 +799,8 @@ body {
     }
 }
 
-/* Анимация для обновления достижений */
-.achievement-card.just-completed {
-    animation: achievementComplete 0.6s ease;
-}
-
-@keyframes achievementComplete {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    75% { transform: rotate(5deg); }
-    100% { transform: scale(1) rotate(0deg); }
-}
-
-/* Анимация для загрузки контента */
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
-
-.loading {
-    background: linear-gradient(90deg, 
-        var(--background-color) 0%, 
-        rgba(255,255,255,0.1) 50%, 
-        var(--background-color) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-}
-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    pointer-events: none;
-}
-
-.container {
-    position: relative;
-    z-index: 1;
-    background: rgba(255, 255, 255, 0.8); /* Полупрозрачный фон для контента */
-    backdrop-filter: blur(10px); /* Размытие фона */
-}
-
-[data-theme="dark"] .container {
-    background: rgba(0, 0, 0, 0.8);
-}
-.container {
-    position: relative;
-    z-index: 1;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-[data-theme="dark"] .container {
-    background: rgba(26, 26, 26, 0.85);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
-/* Улучшенные эффекты для карточек */
-.stat-card,
-.achievement-card,
-.game-card {
-    backdrop-filter: blur(5px);
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-[data-theme="dark"] .stat-card,
-[data-theme="dark"] .achievement-card,
-[data-theme="dark"] .game-card {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.container, .stat-card, .achievement-card, .game-card {
-    transition: all 0.3s ease;
-}
-
-canvas {
-    transition: opacity 0.3s ease;
-}
-
-/* Добавьте класс для плавного появления canvas */
-canvas.fade-in {
+/* Canvas Fade In */
+.fade-in {
     opacity: 0;
     animation: fadeIn 0.5s ease forwards;
 }
