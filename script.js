@@ -779,50 +779,28 @@ function initBackgroundEffect() {
             return radius / dist;
         }
     
-        vec3 getRainbowColor(float t) {
-            vec3 c1 = vec3(0.5, 0.8, 0.3);  // Светло-зеленый
-            vec3 c2 = vec3(0.3, 0.7, 0.5);  // Бирюзовый
-            vec3 c3 = vec3(0.2, 0.5, 0.8);  // Голубой
-            
-            float p = fract(t);
-            if (p < 0.33) {
-                return mix(c1, c2, p * 3.0);
-            } else if (p < 0.66) {
-                return mix(c2, c3, (p - 0.33) * 3.0);
-            } else {
-                return mix(c3, c1, (p - 0.66) * 3.0);
-            }
-        }
-    
         void main() {
             vec2 uv = gl_FragCoord.xy / resolution.xy;
             uv = uv * 2.0 - 1.0;
             uv.x *= resolution.x / resolution.y;
             
             float field = 0.0;
-            vec3 color = vec3(0.0);
             
             for(int i = 0; i < 8; i++) {
-                float blobField = getBlobField(uv, blobs[i], 0.065);
-                field += blobField;
-                
-                // Добавляем цвет для каждого блоба
-                float timeOffset = time * 0.5 + float(i) * 0.2;
-                vec3 blobColor = getRainbowColor(timeOffset);
-                color += blobColor * blobField * 0.5;
+                field += getBlobField(uv, blobs[i], 0.065);
             }
     
-            float pulse = abs(sin(time * 0.5));
+            // Задаём фиксированный цвет для блобов
+            vec3 blobColor = vec3(0.6, 0.8, 0.3); // Светло-зеленый цвет
+            
+            // Применяем цвет равномерно
+            float alpha = smoothstep(0.8, 1.2, field) * 0.3;
             
             if (isDark) {
-                color *= 0.7 + pulse * 0.3;
-            } else {
-                color *= 0.5 + pulse * 0.5;
+                blobColor *= 0.7; // Немного темнее для тёмной темы
             }
             
-            float alpha = smoothstep(1.0, 1.0, field) * 0.2;
-            
-            gl_FragColor = vec4(color, alpha);
+            gl_FragColor = vec4(blobColor, alpha);
         }
     `;
 
