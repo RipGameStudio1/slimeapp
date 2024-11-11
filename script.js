@@ -48,7 +48,34 @@ const fragmentShaderSource = `
         gl_FragColor = vec4(color, alpha);
     }
 `;
+function checkPerformance() {
+    const fps = [];
+    let lastTime = performance.now();
+    let frame = 0;
 
+    function measureFPS() {
+        const now = performance.now();
+        const delta = now - lastTime;
+        lastTime = now;
+        
+        fps.push(1000 / delta);
+        if (fps.length > 30) fps.shift();
+        
+        frame++;
+        if (frame < 60) {
+            requestAnimationFrame(measureFPS);
+        } else {
+            const avgFPS = fps.reduce((a, b) => a + b) / fps.length;
+            if (avgFPS < 30) {
+                // Уменьшаем качество для слабых устройств
+                blobs.length = Math.min(blobs.length, 4);
+                canvas.style.opacity = '0.8';
+            }
+        }
+    }
+
+    requestAnimationFrame(measureFPS);
+}
 // WebGL вспомогательные функции
 function createShader(type, source) {
     const shader = gl.createShader(type);
@@ -87,7 +114,7 @@ function initWebGL() {
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
             throw new Error('Ошибка линковки программы');
         }
-
+        updateBlobsWithMouse = addInteractivity();
         return { gl, program };
     } catch (error) {
         console.error('Ошибка инициализации WebGL:', error);
@@ -321,7 +348,7 @@ function render(time, locations) {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     
-    updateBlobsWithMouse();
+    if (updateBlobsWithMouse) updateBlobsWithMouse();
     updateBlobs();
 
     const farmingActive = document.querySelector('.farming-button')?.classList.contains('disabled');
@@ -766,7 +793,7 @@ class FarmingSystem {
 
         // Инициализация навигации
         document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function(e) {
+            item.addEventListener('click', (e) => {
                 e.preventDefault();
                 const section = this.dataset.section;
                 
