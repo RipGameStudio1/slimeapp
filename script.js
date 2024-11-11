@@ -794,7 +794,7 @@ function initBackgroundEffect() {
             vec3 blobColor = vec3(0.6, 0.8, 0.3); // Светло-зеленый цвет
             
             // Применяем цвет равномерно
-            float alpha = smoothstep(0.8, 1.2, field) * 0.3;
+            float alpha = smoothstep(1.0, 1.0, field) * 0.3;
             
             if (isDark) {
                 blobColor *= 0.7; // Немного темнее для тёмной темы
