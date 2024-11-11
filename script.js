@@ -1,5 +1,22 @@
 const API_URL = 'https://neutral-marylou-slimeapp-2e3dcce0.koyeb.app';
 
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    if (!toast) {
+        const newToast = document.createElement('div');
+        newToast.id = 'toast';
+        document.body.appendChild(newToast);
+    }
+    
+    const toastElement = document.getElementById('toast');
+    toastElement.textContent = message;
+    toastElement.classList.add('show');
+    
+    setTimeout(() => {
+        toastElement.classList.remove('show');
+    }, 3000);
+}
+
 function initUserData() {
     const tg = window.Telegram.WebApp;
     
@@ -198,6 +215,7 @@ class FarmingSystem {
         this.saveInterval = null;
         this.farmingTimeout = null;
         this.referralCode = null;
+        this.isAdmin = false;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
@@ -208,11 +226,48 @@ class FarmingSystem {
     async initUser() {
         const tg = window.Telegram.WebApp;
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            this.userId = tg.initDataUnsafe.user.id;
+            this.userId = tg.initDataUnsafe.user.id.toString();
+            // Проверяем, является ли пользователь админом
+            this.isAdmin = this.userId === '520136821';
+            if (this.isAdmin) {
+                this.initAdminPanel();
+            }
             await this.loadUserData();
         }
     }
-    
+    initAdminPanel() {
+        // Добавляем кнопку админ-панели в навигацию
+        const navigation = document.querySelector('.navigation');
+        const adminNav = document.createElement('a');
+        adminNav.href = '#';
+        adminNav.className = 'nav-item';
+        adminNav.dataset.section = 'admin';
+        adminNav.innerHTML = `
+            <i class="fas fa-shield-alt"></i>
+            <span>Admin</span>
+        `;
+        navigation.appendChild(adminNav);
+
+        // Добавляем обработчик для админ-навигации
+        adminNav.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelector('.main-content').style.display = 'none';
+            document.querySelector('.play-section').style.display = 'none';
+            document.querySelector('.referrals-section').style.display = 'none';
+            document.querySelector('.admin-section').style.display = 'block';
+            
+            // Обновляем активную навигацию
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+            adminNav.classList.add('active');
+        });
+
+        // Инициализируем админ-панель
+        if (!window.adminPanel) {
+            window.adminPanel = new AdminPanel(this.userId);
+        }
+    }
     async loadUserData() {
         showLoadingIndicator();
         try {
@@ -825,14 +880,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initUserData();
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
-
-    // Инициализация админ-панели для админа
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const userId = tg.initDataUnsafe.user.id.toString();
-        if (userId === '520136821') {
-            window.adminPanel = new AdminPanel(userId);
-        }
-    }
 
     // Инициализация игровых карточек
     const playSection = document.createElement('div');
