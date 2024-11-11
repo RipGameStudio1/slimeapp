@@ -773,30 +773,51 @@ function initBackgroundEffect() {
         uniform vec2 blobs[8];
         uniform float time;
         uniform bool isDark;
-
+    
         float getBlobField(vec2 point, vec2 center, float radius) {
             float dist = length(point - center);
             return radius / dist;
         }
-
+    
+        vec3 getRainbowColor(float t) {
+            vec3 c1 = vec3(0.5, 0.8, 0.3);  // Светло-зеленый
+            vec3 c2 = vec3(0.3, 0.7, 0.5);  // Бирюзовый
+            vec3 c3 = vec3(0.2, 0.5, 0.8);  // Голубой
+            
+            float p = fract(t);
+            if (p < 0.33) {
+                return mix(c1, c2, p * 3.0);
+            } else if (p < 0.66) {
+                return mix(c2, c3, (p - 0.33) * 3.0);
+            } else {
+                return mix(c3, c1, (p - 0.66) * 3.0);
+            }
+        }
+    
         void main() {
             vec2 uv = gl_FragCoord.xy / resolution.xy;
             uv = uv * 2.0 - 1.0;
             uv.x *= resolution.x / resolution.y;
             
             float field = 0.0;
+            vec3 color = vec3(0.0);
             
             for(int i = 0; i < 8; i++) {
-                field += getBlobField(uv, blobs[i], 0.065);
+                float blobField = getBlobField(uv, blobs[i], 0.065);
+                field += blobField;
+                
+                // Добавляем цвет для каждого блоба
+                float timeOffset = time * 0.5 + float(i) * 0.2;
+                vec3 blobColor = getRainbowColor(timeOffset);
+                color += blobColor * blobField * 0.5;
             }
-
-            vec3 color;
+    
             float pulse = abs(sin(time * 0.5));
             
             if (isDark) {
-                color = vec3(0.0 + pulse * 0.4);
+                color *= 0.7 + pulse * 0.3;
             } else {
-                color = vec3(pulse * 0.5);
+                color *= 0.5 + pulse * 0.5;
             }
             
             float alpha = smoothstep(1.0, 1.0, field) * 0.2;
