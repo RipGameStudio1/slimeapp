@@ -797,7 +797,7 @@ class FarmingSystem {
             ripple.remove();
         });
     }
-
+}
 //обработчики для всех кнопок
 document.querySelectorAll('.play-btn, .farming-button').forEach(button => {
     button.addEventListener('click', createRipple);
