@@ -726,6 +726,173 @@ function showToast(message) {
     }, 3000);
 }
 
+class AdminPanel {
+    constructor(userId) {
+        this.userId = userId;
+        this.init();
+    }
+
+    async init() {
+        if (this.userId !== '520136821') return;
+
+        // Инициализация обработчиков событий
+        document.getElementById('update-schema').addEventListener('click', () => this.updateSchema());
+        document.getElementById('reset-farming').addEventListener('click', () => this.resetFarming());
+        document.getElementById('clear-inactive').addEventListener('click', () => this.clearInactive());
+        document.getElementById('search-user').addEventListener('click', () => this.searchUser());
+        document.getElementById('save-user').addEventListener('click', () => this.saveUserChanges());
+
+        // Загрузка начальных данных
+        await this.loadStats();
+        await this.loadActivity();
+
+        // Обновление статистики каждые 30 секунд
+        setInterval(() => this.loadStats(), 30000);
+    }
+
+    async loadStats() {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/stats?userId=${this.userId}`);
+            const data = await response.json();
+
+            document.getElementById('total-users').textContent = data.totalUsers;
+            document.getElementById('active-users').textContent = data.activeUsers;
+            document.getElementById('total-lime').textContent = data.totalLime.toFixed(5);
+        } catch (error) {
+            console.error('Error loading admin stats:', error);
+            showToast('Failed to load admin statistics');
+        }
+    }
+
+    async loadActivity() {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/activity?userId=${this.userId}`);
+            const activities = await response.json();
+
+            const tbody = document.getElementById('activity-log');
+            tbody.innerHTML = '';
+
+            activities.forEach(activity => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
+                    <td>${activity.userId}</td>
+                    <td>${activity.action}</td>
+                    <td>${activity.details}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error loading activity:', error);
+            showToast('Failed to load activity log');
+        }
+    }
+
+    async updateSchema() {
+        try {
+            const response = await fetch(`${API_URL}/api/update-users-schema`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminId: this.userId })
+            });
+            const data = await response.json();
+            showToast(`Updated ${data.updatedUsers} users`);
+        } catch (error) {
+            console.error('Error updating schema:', error);
+            showToast('Failed to update schema');
+        }
+    }
+
+    async resetFarming() {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/reset-farming?adminId=${this.userId}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            showToast(`Reset farming for ${data.resetCount} users`);
+        } catch (error) {
+            console.error('Error resetting farming:', error);
+            showToast('Failed to reset farming');
+        }
+    }
+
+    async clearInactive() {
+        if (!confirm('Are you sure you want to clear inactive users?')) return;
+        
+        try {
+            const response = await fetch(`${API_URL}/api/admin/clear-inactive?adminId=${this.userId}`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            showToast(`Removed ${data.deletedCount} inactive users`);
+        } catch (error) {
+            console.error('Error clearing inactive users:', error);
+            showToast('Failed to clear inactive users');
+        }
+    }
+
+    async searchUser() {
+        const searchId = document.getElementById('user-search').value;
+        if (!searchId) {
+            showToast('Please enter user ID');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/user/${searchId}?adminId=${this.userId}`);
+            const user = await response.json();
+
+            if (user.error) {
+                showToast('User not found');
+                return;
+            }
+
+            document.getElementById('edit-lime').value = user.limeAmount;
+            document.getElementById('edit-level').value = user.level;
+            document.querySelector('.user-edit-form').style.display = 'flex';
+            
+            // Сохраняем ID найденного пользователя для последующего редактирования
+            this.editingUserId = searchId;
+        } catch (error) {
+            console.error('Error searching user:', error);
+            showToast('Failed to search user');
+        }
+    }
+
+    async saveUserChanges() {
+        if (!this.editingUserId) return;
+
+        const limeAmount = parseFloat(document.getElementById('edit-lime').value);
+        const level = parseInt(document.getElementById('edit-level').value);
+
+        if (isNaN(limeAmount) || isNaN(level)) {
+            showToast('Please enter valid values');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/user/${this.editingUserId}?adminId=${this.userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ limeAmount, level })
+            });
+
+            const result = await response.json();
+            if (result.error) {
+                throw new Error(result.error);
+            }
+
+            showToast('User updated successfully');
+            document.querySelector('.user-edit-form').style.display = 'none';
+            document.getElementById('user-search').value = '';
+            this.editingUserId = null;
+        } catch (error) {
+            console.error('Error updating user:', error);
+            showToast('Failed to update user');
+        }
+    }
+}
+
 function createRipple(event) {
     const button = event.currentTarget;
     const ripple = document.createElement('span');
