@@ -643,11 +643,14 @@ class FarmingSystem {
     }
 
     init() {
+        // Добавляем обработчик для кнопки фарминга
         this.button.addEventListener('click', () => {
             if (!this.isActive) {
                 this.startFarming();
             }
         });   
+    
+        // Обработчики для навигации
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -657,6 +660,7 @@ class FarmingSystem {
                 document.querySelector('.main-content').style.display = 'none';
                 document.querySelector('.play-section').style.display = 'none';
                 document.querySelector('.referrals-section').style.display = 'none';
+                document.querySelector('.admin-section').style.display = 'none';
                 
                 // Показываем нужную секцию
                 if (section === 'main') {
@@ -666,18 +670,10 @@ class FarmingSystem {
                 } else if (section === 'referrals') {
                     document.querySelector('.referrals-section').style.display = 'block';
                     window.farmingSystem.loadReferralData(); // Обновляем данные при переключении на вкладку
+                } else if (section === 'admin' && this.userId === '520136821') {
+                    document.querySelector('.admin-section').style.display = 'block';
                 }
-                if (this.userId === '520136821') {
-                    const adminNav = document.createElement('a');
-                    adminNav.href = '#';
-                    adminNav.className = 'nav-item';
-                    adminNav.dataset.section = 'admin';
-                    adminNav.innerHTML = `
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Admin</span>
-                    `;
-                    document.querySelector('.navigation').appendChild(adminNav);
-                }
+                
                 // Обновляем активную навигацию
                 document.querySelectorAll('.nav-item').forEach(nav => {
                     nav.classList.remove('active');
@@ -689,24 +685,70 @@ class FarmingSystem {
         // Инициализация карточек игр
         document.querySelectorAll('.game-card').forEach((card, index) => {
             card.style.setProperty('--card-index', index);
+            
+            // Добавляем эффект при наведении
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5;
+                const y = (e.clientY - rect.top) / rect.height - 0.5;
+                
+                const image = card.querySelector('.game-image');
+                if (image) {
+                    image.style.transform = `
+                        scale(1.05) 
+                        rotateY(${x * 5}deg) 
+                        rotateX(${y * -5}deg)
+                    `;
+                }
+            });
+    
+            card.addEventListener('mouseleave', () => {
+                const image = card.querySelector('.game-image');
+                if (image) {
+                    image.style.transform = 'scale(1) rotateY(0) rotateX(0)';
+                }
+            });
         });
+    
+        // Добавляем кнопку админ-панели для админа
+        if (this.userId === '520136821') {
+            const adminNav = document.createElement('a');
+            adminNav.href = '#';
+            adminNav.className = 'nav-item';
+            adminNav.dataset.section = 'admin';
+            adminNav.innerHTML = `
+                <i class="fas fa-shield-alt"></i>
+                <span>Admin</span>
+            `;
+            document.querySelector('.navigation').appendChild(adminNav);
+        }
+    
+        // Инициализация реферальной системы
+        this.initReferralSystem();
+    
         // Периодическая синхронизация каждые 10 секунд
         setInterval(() => {
             this.syncWithServer();
         }, 10000);
-
+    
         // Синхронизация при возвращении вкладки в активное состояние
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 this.syncWithServer();
             }
         });
-
+    
         // Синхронизация при восстановлении подключения к интернету
         window.addEventListener('online', () => {
             this.syncWithServer();
+            showToast('Connection restored');
         });
-
+    
+        window.addEventListener('offline', () => {
+            showToast('Connection lost');
+        });
+    
+        // Проверка достижений каждую секунду
         setInterval(() => {
             this.achievementSystem.checkAchievements({
                 limeAmount: this.limeAmount,
@@ -714,204 +756,47 @@ class FarmingSystem {
                 farmingSpeed: 1
             });
         }, 1000);
-    }
-}
-
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-class AdminPanel {
-    constructor(userId) {
-        this.userId = userId;
-        this.init();
-    }
-
-    async init() {
-        if (this.userId !== '520136821') return;
-
-        // Инициализация обработчиков событий
-        document.getElementById('update-schema').addEventListener('click', () => this.updateSchema());
-        document.getElementById('reset-farming').addEventListener('click', () => this.resetFarming());
-        document.getElementById('clear-inactive').addEventListener('click', () => this.clearInactive());
-        document.getElementById('search-user').addEventListener('click', () => this.searchUser());
-        document.getElementById('save-user').addEventListener('click', () => this.saveUserChanges());
-
-        // Загрузка начальных данных
-        await this.loadStats();
-        await this.loadActivity();
-
-        // Обновление статистики каждые 30 секунд
-        setInterval(() => this.loadStats(), 30000);
-    }
-
-    async loadStats() {
-        try {
-            const response = await fetch(`${API_URL}/api/admin/stats?userId=${this.userId}`);
-            const data = await response.json();
-
-            document.getElementById('total-users').textContent = data.totalUsers;
-            document.getElementById('active-users').textContent = data.activeUsers;
-            document.getElementById('total-lime').textContent = data.totalLime.toFixed(5);
-        } catch (error) {
-            console.error('Error loading admin stats:', error);
-            showToast('Failed to load admin statistics');
-        }
-    }
-
-    async loadActivity() {
-        try {
-            const response = await fetch(`${API_URL}/api/admin/activity?userId=${this.userId}`);
-            const activities = await response.json();
-
-            const tbody = document.getElementById('activity-log');
-            tbody.innerHTML = '';
-
-            activities.forEach(activity => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
-                    <td>${activity.userId}</td>
-                    <td>${activity.action}</td>
-                    <td>${activity.details}</td>
-                `;
-                tbody.appendChild(row);
+    
+        // Добавляем эффект ripple для всех кнопок
+        document.querySelectorAll('.play-btn, .farming-button, .admin-button').forEach(button => {
+            button.addEventListener('click', this.createRippleEffect);
+        });
+    
+        // Инициализация анимаций для статистики
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-5px)';
             });
-        } catch (error) {
-            console.error('Error loading activity:', error);
-            showToast('Failed to load activity log');
-        }
-    }
-
-    async updateSchema() {
-        try {
-            const response = await fetch(`${API_URL}/api/update-users-schema`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminId: this.userId })
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
             });
-            const data = await response.json();
-            showToast(`Updated ${data.updatedUsers} users`);
-        } catch (error) {
-            console.error('Error updating schema:', error);
-            showToast('Failed to update schema');
-        }
+        });
+    
+        // Показываем основную секцию по умолчанию
+        document.querySelector('.main-content').style.display = 'block';
+        document.querySelector('.nav-item[data-section="main"]').classList.add('active');
     }
-
-    async resetFarming() {
-        try {
-            const response = await fetch(`${API_URL}/api/admin/reset-farming?adminId=${this.userId}`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            showToast(`Reset farming for ${data.resetCount} users`);
-        } catch (error) {
-            console.error('Error resetting farming:', error);
-            showToast('Failed to reset farming');
-        }
-    }
-
-    async clearInactive() {
-        if (!confirm('Are you sure you want to clear inactive users?')) return;
+    
+    // Вспомогательная функция для создания эффекта ripple
+    createRippleEffect(event) {
+        const button = event.currentTarget;
+        const ripple = document.createElement('span');
+        const rect = button.getBoundingClientRect();
         
-        try {
-            const response = await fetch(`${API_URL}/api/admin/clear-inactive?adminId=${this.userId}`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            showToast(`Removed ${data.deletedCount} inactive users`);
-        } catch (error) {
-            console.error('Error clearing inactive users:', error);
-            showToast('Failed to clear inactive users');
-        }
+        const diameter = Math.max(rect.width, rect.height);
+        const radius = diameter / 2;
+        
+        ripple.style.width = ripple.style.height = `${diameter}px`;
+        ripple.style.left = `${event.clientX - rect.left - radius}px`;
+        ripple.style.top = `${event.clientY - rect.top - radius}px`;
+        
+        ripple.classList.add('ripple');
+        button.appendChild(ripple);
+        
+        ripple.addEventListener('animationend', () => {
+            ripple.remove();
+        });
     }
-
-    async searchUser() {
-        const searchId = document.getElementById('user-search').value;
-        if (!searchId) {
-            showToast('Please enter user ID');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_URL}/api/admin/user/${searchId}?adminId=${this.userId}`);
-            const user = await response.json();
-
-            if (user.error) {
-                showToast('User not found');
-                return;
-            }
-
-            document.getElementById('edit-lime').value = user.limeAmount;
-            document.getElementById('edit-level').value = user.level;
-            document.querySelector('.user-edit-form').style.display = 'flex';
-            
-            // Сохраняем ID найденного пользователя для последующего редактирования
-            this.editingUserId = searchId;
-        } catch (error) {
-            console.error('Error searching user:', error);
-            showToast('Failed to search user');
-        }
-    }
-
-    async saveUserChanges() {
-        if (!this.editingUserId) return;
-
-        const limeAmount = parseFloat(document.getElementById('edit-lime').value);
-        const level = parseInt(document.getElementById('edit-level').value);
-
-        if (isNaN(limeAmount) || isNaN(level)) {
-            showToast('Please enter valid values');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_URL}/api/admin/user/${this.editingUserId}?adminId=${this.userId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ limeAmount, level })
-            });
-
-            const result = await response.json();
-            if (result.error) {
-                throw new Error(result.error);
-            }
-
-            showToast('User updated successfully');
-            document.querySelector('.user-edit-form').style.display = 'none';
-            document.getElementById('user-search').value = '';
-            this.editingUserId = null;
-        } catch (error) {
-            console.error('Error updating user:', error);
-            showToast('Failed to update user');
-        }
-    }
-}
-
-function createRipple(event) {
-    const button = event.currentTarget;
-    const ripple = document.createElement('span');
-    const rect = button.getBoundingClientRect();
-    
-    const diameter = Math.max(rect.width, rect.height);
-    const radius = diameter / 2;
-    
-    ripple.style.width = ripple.style.height = `${diameter}px`;
-    ripple.style.left = `${event.clientX - rect.left - radius}px`;
-    ripple.style.top = `${event.clientY - rect.top - radius}px`;
-    
-    ripple.classList.add('ripple');
-    button.appendChild(ripple);
-    
-    ripple.addEventListener('animationend', () => {
-        ripple.remove();
-    });
-}
 
 //обработчики для всех кнопок
 document.querySelectorAll('.play-btn, .farming-button').forEach(button => {
