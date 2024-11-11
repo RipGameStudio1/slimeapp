@@ -822,17 +822,23 @@ function hideLoadingIndicator() {
 
 // Инициализация приложения при загрузке DOM
 document.addEventListener('DOMContentLoaded', () => {
+    // Инициализация Telegram WebApp
+    const tg = window.Telegram.WebApp;
+    tg.expand(); // Расширяем на весь экран
+    
+    // Инициализация основных систем
     initUserData();
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
-    window.farmingSystem.initReferralSystem();
-    const tg = window.Telegram.WebApp;
+
+    // Инициализация админ-панели для админа
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         const userId = tg.initDataUnsafe.user.id.toString();
         if (userId === '520136821') {
             window.adminPanel = new AdminPanel(userId);
         }
     }
+
     // Инициализация игровых карточек
     const playSection = document.createElement('div');
     playSection.className = 'play-section';
