@@ -683,7 +683,7 @@ class FarmingSystem {
         // Периодическая синхронизация каждые 10 секунд
         setInterval(() => {
             this.syncWithServer();
-        }, 10000);
+        }, 1000);
 
         // Синхронизация при возвращении вкладки в активное состояние
         document.addEventListener('visibilitychange', () => {
