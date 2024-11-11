@@ -1,130 +1,71 @@
 const API_URL = 'https://neutral-marylou-slimeapp-2e3dcce0.koyeb.app';
 
-// WebGL переменные и шейдеры
-let canvas, gl, program;
-let isDarkTheme = false;
-
-const vertexShaderSource = `
-    attribute vec2 position;
-    void main() {
-        gl_Position = vec4(position, 0.0, 1.0);
-    }
-`;
-
-const fragmentShaderSource = `
-    precision highp float;
-    uniform vec2 resolution;
-    uniform vec2 blobs[8];
-    uniform float time;
-    uniform bool isDark;
-
-    float getBlobField(vec2 point, vec2 center, float radius) {
-        float dist = length(point - center);
-        return radius / dist;
-    }
-
-    void main() {
-        vec2 uv = gl_FragCoord.xy / resolution.xy;
-        uv = uv * 2.0 - 1.0;
-        uv.x *= resolution.x / resolution.y;
+function initUserData() {
+    const tg = window.Telegram.WebApp;
+    
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
         
-        float field = 0.0;
+        const usernameElement = document.querySelector('.username');
+        usernameElement.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
         
-        for(int i = 0; i < 8; i++) {
-            field += getBlobField(uv, blobs[i], 0.065);
-        }
+        const userIdElement = document.querySelector('.user-id');
+        userIdElement.textContent = `ID: ${user.id}`;
+        
+        const avatarElement = document.querySelector('.avatar');
+        const userId = user.id;
+        const photoUrl = `https://cdn4.telegram-cdn.org/file/user${userId}.jpg`;
+        
+        avatarElement.style.backgroundImage = `url(${photoUrl})`;
+        avatarElement.style.backgroundSize = 'cover';
+        avatarElement.style.backgroundPosition = 'center';
+    }
+}
 
-        vec3 color;
-        float pulse = abs(sin(time * 0.3));
+function initThemeToggle() {
+    const themeToggle = document.querySelector('.theme-toggle');
+    const icon = themeToggle.querySelector('i');
+    let isDark = false;
+
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+        isDark = true;
+        window.isDarkTheme = true; // Добавьте эту строку
+    }
+
+    themeToggle.addEventListener('click', function() {
+        const icon = this.querySelector('i');
+        icon.style.animation = 'none';
+        void icon.offsetWidth;
+        icon.style.animation = 'themeToggleRotate 0.5s ease';
+
+        isDark = !isDark;
+        window.isDarkTheme = isDark; // Добавьте эту строку
         
         if (isDark) {
-            color = vec3(0.1, 0.1, 0.15) * pulse;
+            document.body.setAttribute('data-theme', 'dark');
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+            localStorage.setItem('theme', 'dark');
         } else {
-            color = vec3(0.8, 0.9, 0.8) * pulse;
+            document.body.removeAttribute('data-theme');
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+            localStorage.setItem('theme', 'light');
         }
-        
-        float alpha = smoothstep(1.0, 1.0, field) * 0.15;
-        
-        gl_FragColor = vec4(color, alpha);
-    }
-`;
-function checkPerformance() {
-    const fps = [];
-    let lastTime = performance.now();
-    let frame = 0;
 
-    function measureFPS() {
-        const now = performance.now();
-        const delta = now - lastTime;
-        lastTime = now;
-        
-        fps.push(1000 / delta);
-        if (fps.length > 30) fps.shift();
-        
-        frame++;
-        if (frame < 60) {
-            requestAnimationFrame(measureFPS);
-        } else {
-            const avgFPS = fps.reduce((a, b) => a + b) / fps.length;
-            if (avgFPS < 30) {
-                // Уменьшаем качество для слабых устройств
-                blobs.length = Math.min(blobs.length, 4);
-                canvas.style.opacity = '0.8';
-            }
-        }
-    }
+        showToast(isDark ? 'Dark mode enabled' : 'Light mode enabled');
+    });
 
-    requestAnimationFrame(measureFPS);
-}
-// WebGL вспомогательные функции
-function createShader(type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error('Ошибка компиляции шейдера:', gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-    }
-    return shader;
+    themeToggle.style.opacity = '0';
+    setTimeout(() => {
+        themeToggle.style.transition = 'opacity 0.3s ease';
+        themeToggle.style.opacity = '1';
+    }, 100);
 }
 
-function initWebGL() {
-    try {
-        canvas = document.getElementById('canvas');
-        gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        
-        if (!gl) {
-            throw new Error('WebGL не поддерживается');
-        }
-
-        const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
-        const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-        
-        if (!vertexShader || !fragmentShader) {
-            throw new Error('Ошибка создания шейдеров');
-        }
-
-        program = gl.createProgram();
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            throw new Error('Ошибка линковки программы');
-        }
-        updateBlobsWithMouse = addInteractivity();
-        return { gl, program };
-    } catch (error) {
-        console.error('Ошибка инициализации WebGL:', error);
-        canvas.style.display = 'none';
-        document.body.style.background = 'linear-gradient(45deg, #f3f4f6, #fff)';
-        document.body.setAttribute('data-webgl-failed', 'true');
-        return null;
-    }
-}
-// Классы основного приложения
 class LevelSystem {
     constructor() {
         this.level = 1;
@@ -220,7 +161,6 @@ class AchievementSystem {
         if (!achievement.completed) {
             achievement.completed = true;
             showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
-            celebrateAchievement(); // Вызов эффекта для WebGL фона
             
             const card = document.querySelector(`[data-id="${achievement.id}"]`);
             if (card) {
@@ -239,141 +179,7 @@ class AchievementSystem {
         });
     }
 }
-// WebGL и анимация фона
-const blobs = Array(8).fill().map(() => ({
-    x: Math.random() * 2 - 1,
-    y: Math.random() * 2 - 1,
-    vx: (Math.random() - 0.5) * 0.009,
-    vy: (Math.random() - 0.5) * 0.009,
-    scale: 1
-}));
 
-function setupWebGL() {
-    const webglSetup = initWebGL();
-    if (!webglSetup) return false;
-
-    gl.useProgram(program);
-
-    const vertices = new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]);
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-    const positionLocation = gl.getAttribLocation(program, 'position');
-    gl.enableVertexAttribArray(positionLocation);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-    const resolutionLocation = gl.getUniformLocation(program, 'resolution');
-    const blobsLocation = gl.getUniformLocation(program, 'blobs');
-    const timeLocation = gl.getUniformLocation(program, 'time');
-    const isDarkLocation = gl.getUniformLocation(program, 'isDark');
-
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-    return {
-        resolutionLocation,
-        blobsLocation,
-        timeLocation,
-        isDarkLocation
-    };
-}
-
-function updateBlobs() {
-    blobs.forEach(blob => {
-        blob.x += blob.vx;
-        blob.y += blob.vy;
-
-        if (Math.abs(blob.x) > 1) blob.vx *= -1;
-        if (Math.abs(blob.y) > 1) blob.vy *= -1;
-    });
-}
-
-function addInteractivity() {
-    let mouseX = 0;
-    let mouseY = 0;
-    let targetX = 0;
-    let targetY = 0;
-
-    document.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        mouseX = (e.clientX - rect.left) / rect.width * 2 - 1;
-        mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    });
-
-    return function updateBlobsWithMouse() {
-        targetX += (mouseX - targetX) * 0.1;
-        targetY += (mouseY - targetY) * 0.1;
-
-        blobs.forEach((blob, index) => {
-            if (index === 0) {
-                blob.x += (targetX - blob.x) * 0.05;
-                blob.y += (targetY - blob.y) * 0.05;
-            } else {
-                blob.x += blob.vx + (targetX - blob.x) * 0.01;
-                blob.y += blob.vy + (targetY - blob.y) * 0.01;
-            }
-        });
-    };
-}
-
-function resizeCanvas() {
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = window.innerWidth * pixelRatio;
-    canvas.height = window.innerHeight * pixelRatio;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-    gl.viewport(0, 0, canvas.width, canvas.height);
-}
-
-function celebrateAchievement() {
-    blobs.forEach(blob => {
-        blob.vx *= 2;
-        blob.vy *= 2;
-        blob.scale = 1.5;
-    });
-
-    setTimeout(() => {
-        blobs.forEach(blob => {
-            blob.vx /= 2;
-            blob.vy /= 2;
-            blob.scale = 1;
-        });
-    }, 2000);
-}
-
-function render(time, locations) {
-    if (document.hidden) return requestAnimationFrame(() => render(time, locations));
-
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    
-    if (updateBlobsWithMouse) updateBlobsWithMouse();
-    updateBlobs();
-
-    const farmingActive = document.querySelector('.farming-button')?.classList.contains('disabled');
-    if (farmingActive) {
-        const pulseIntensity = Math.sin(time * 0.003) * 0.2 + 0.8;
-        blobs.forEach(blob => {
-            blob.scale = pulseIntensity;
-        });
-    }
-
-    gl.uniform2f(locations.resolutionLocation, canvas.width, canvas.height);
-    gl.uniform1f(locations.timeLocation, time * 0.001);
-    gl.uniform1i(locations.isDarkLocation, isDarkTheme ? 1 : 0);
-
-    const blobPositions = new Float32Array(blobs.flatMap(blob => [
-        blob.x * (blob.scale || 1),
-        blob.y * (blob.scale || 1)
-    ]));
-    
-    gl.uniform2fv(locations.blobsLocation, blobPositions);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    
-    requestAnimationFrame((newTime) => render(newTime, locations));
-}
-// Основной класс FarmingSystem
 class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
@@ -462,7 +268,6 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
-
     async syncWithServer() {
         try {
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
@@ -470,21 +275,25 @@ class FarmingSystem {
             
             const serverData = await response.json();
             
+            // Если на сервере фарминг неактивен, но у нас активен
             if (!serverData.isActive && this.isActive) {
                 await this.completeFarming();
                 return;
             }
             
+            // Если на сервере активный фарминг
             if (serverData.isActive && serverData.startTime) {
                 const serverStartTime = new Date(serverData.startTime).getTime();
                 const now = Date.now();
                 const elapsedTime = now - serverStartTime;
                 
+                // Если время фарминга истекло
                 if (elapsedTime >= this.farmingDuration) {
                     await this.completeFarming();
                     return;
                 }
                 
+                // Если на текущем клиенте другое время старта или неактивный фарминг
                 if (!this.isActive || this.startTime !== serverStartTime) {
                     this.startTime = serverStartTime;
                     this.isActive = true;
@@ -493,12 +302,14 @@ class FarmingSystem {
                 }
             }
             
+            // Синхронизация баланса только если фарминг неактивен
             if (!this.isActive) {
                 this.limeAmount = parseFloat(serverData.limeAmount);
                 this.baseAmount = this.limeAmount;
                 this.updateLimeDisplay();
             }
             
+            // Остальная синхронизация
             this.farmingCount = serverData.farmingCount;
             this.levelSystem.level = serverData.level;
             this.levelSystem.xp = serverData.xp;
@@ -515,18 +326,21 @@ class FarmingSystem {
             console.error('Sync error:', error);
         }
     }
-    // Продолжение класса FarmingSystem
     async loadReferralData() {
         try {
+            console.log('Loading referral data...'); // Отладочный лог
             const response = await fetch(`${API_URL}/api/users/${this.userId}/referrals`);
             
             if (!response.ok) {
+                console.error('Response not OK:', response.status, response.statusText);
                 throw new Error('Failed to load referral data');
             }
             
             const data = await response.json();
+            console.log('Received referral data:', data); // Отладочный лог
             
             if (!data.referralCode) {
+                console.error('No referral code in response');
                 throw new Error('Referral code is missing in response');
             }
             
@@ -534,11 +348,15 @@ class FarmingSystem {
             this.updateReferralUI(data);
         } catch (error) {
             console.error('Error loading referral data:', error);
+            // Показываем более информативное сообщение об ошибке
             showToast(`Failed to load referral data: ${error.message}`);
         }
     }
     
     updateReferralUI(data) {
+        console.log('Updating referral UI with data:', data); // Отладочный лог
+    
+        // Обновляем статистику
         const countElement = document.getElementById('referral-count');
         const earningsElement = document.getElementById('referral-earnings');
         const referralLink = document.getElementById('referral-link');
@@ -546,18 +364,22 @@ class FarmingSystem {
         if (countElement) countElement.textContent = data.referralCount || 0;
         if (earningsElement) earningsElement.textContent = (data.totalEarnings || 0).toFixed(5);
     
+        // Обновляем реферальную ссылку
         if (referralLink) {
             if (data.referralCode) {
-                const botUsername = 'LimeSlimeBot';
+                const botUsername = 'LimeSlimeBot'; // Убедитесь, что это правильное имя бота
                 referralLink.value = `https://t.me/${botUsername}?start=${data.referralCode}`;
             } else {
                 referralLink.value = 'Loading...';
             }
+        } else {
+            console.error('Referral link element not found');
         }
     
+        // Обновляем список рефералов
         const referralListBody = document.getElementById('referral-list-body');
         if (referralListBody) {
-            referralListBody.innerHTML = '';
+            referralListBody.innerHTML = ''; // Очищаем текущий список
     
             if (data.referrals && data.referrals.length > 0) {
                 data.referrals.forEach(referral => {
@@ -583,10 +405,14 @@ class FarmingSystem {
                 `;
                 referralListBody.appendChild(emptyRow);
             }
+        } else {
+            console.error('Referral list body element not found');
         }
     }
     
     initReferralSystem() {
+        console.log('Initializing referral system...'); // Отладочный лог
+        
         const copyButton = document.getElementById('copy-link');
         const referralLink = document.getElementById('referral-link');
     
@@ -595,6 +421,7 @@ class FarmingSystem {
             return;
         }
     
+        // Начальная загрузка данных
         this.loadReferralData();
     
         copyButton.addEventListener('click', () => {
@@ -608,14 +435,26 @@ class FarmingSystem {
             }
         });
     
+        // Периодическое обновление данных
         setInterval(() => this.loadReferralData(), 30000);
     }
 
     resumeFarming(elapsedTime) {
-        if (this.farmingInterval) clearInterval(this.farmingInterval);
-        if (this.saveInterval) clearInterval(this.saveInterval);
-        if (this.farmingTimeout) clearTimeout(this.farmingTimeout);
+        // Очищаем существующие интервалы
+        if (this.farmingInterval) {
+            clearInterval(this.farmingInterval);
+            this.farmingInterval = null;
+        }
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+            this.saveInterval = null;
+        }
+        if (this.farmingTimeout) {
+            clearTimeout(this.farmingTimeout);
+            this.farmingTimeout = null;
+        }
 
+        // Если прошло больше времени чем длительность фарминга, сразу завершаем
         if (elapsedTime >= this.farmingDuration) {
             this.completeFarming();
             return;
@@ -635,12 +474,14 @@ class FarmingSystem {
         const progress = (elapsedTime / this.farmingDuration) * 100;
         progressBar.style.width = `${progress}%`;
 
+        // Вычисляем оставшееся время
         const remainingTime = this.farmingDuration - elapsedTime;
         
+        // Устанавливаем таймер на точное время завершения
         this.farmingTimeout = setTimeout(() => {
             this.completeFarming();
         }, remainingTime);
-
+        // Интервал только для обновления UI
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
             const currentElapsed = now - this.startTime;
@@ -664,13 +505,14 @@ class FarmingSystem {
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
         }, 50);
 
+        // Сохраняем данные реже
         this.saveInterval = setInterval(() => {
             if (this.isActive) {
                 this.saveUserData(this.limeAmount);
             }
         }, 5000);
     }
-    // Продолжение класса FarmingSystem
+
     startFarming() {
         this.isActive = true;
         this.farmingCount++;
@@ -682,13 +524,25 @@ class FarmingSystem {
     }
 
     async completeFarming() {
+        // Проверяем, не был ли уже завершен фарминг
         if (!this.isActive) return;
 
+        // Сразу устанавливаем флаг неактивности
         this.isActive = false;
 
-        if (this.farmingInterval) clearInterval(this.farmingInterval);
-        if (this.saveInterval) clearInterval(this.saveInterval);
-        if (this.farmingTimeout) clearTimeout(this.farmingTimeout);
+        // Очищаем все таймеры и интервалы
+        if (this.farmingInterval) {
+            clearInterval(this.farmingInterval);
+            this.farmingInterval = null;
+        }
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+            this.saveInterval = null;
+        }
+        if (this.farmingTimeout) {
+            clearTimeout(this.farmingTimeout);
+            this.farmingTimeout = null;
+        }
         
         const totalElapsed = Date.now() - this.startTime;
         const earnRate = this.rewardAmount / this.farmingDuration;
@@ -705,6 +559,7 @@ class FarmingSystem {
         }
 
         try {
+            // Отправляем финальное состояние на сервер и ждем подтверждения
             const response = await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
                 method: 'POST',
                 headers: {
@@ -721,9 +576,9 @@ class FarmingSystem {
             }
 
             showToast('Farming completed!');
-            celebrateAchievement(); // Эффект для WebGL фона
         } catch (error) {
             console.error('Error completing farming:', error);
+            // В случае ошибки пытаемся сохранить обычным способом
             await this.saveUserData(this.limeAmount);
         }
     }
@@ -739,9 +594,10 @@ class FarmingSystem {
         
         if (limeAmountElement.textContent !== formattedNumber) {
             limeAmountElement.classList.remove('number-change');
-            void limeAmountElement.offsetWidth;
+            void limeAmountElement.offsetWidth; // Trigger reflow
             limeAmountElement.classList.add('number-change');
             
+            // Добавляем эффект обновления для stat-value
             const statValues = document.querySelectorAll('.stat-value');
             statValues.forEach(stat => {
                 stat.classList.remove('updating');
@@ -789,44 +645,52 @@ class FarmingSystem {
             if (!this.isActive) {
                 this.startFarming();
             }
-        });
-
-        // Инициализация навигации
+        });   
         document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', (e) => {
+            item.addEventListener('click', function(e) {
                 e.preventDefault();
                 const section = this.dataset.section;
                 
+                // Скрываем все секции
                 document.querySelector('.main-content').style.display = 'none';
                 document.querySelector('.play-section').style.display = 'none';
                 document.querySelector('.referrals-section').style.display = 'none';
                 
+                // Показываем нужную секцию
                 if (section === 'main') {
                     document.querySelector('.main-content').style.display = 'block';
                 } else if (section === 'play') {
                     document.querySelector('.play-section').style.display = 'block';
                 } else if (section === 'referrals') {
                     document.querySelector('.referrals-section').style.display = 'block';
-                    this.loadReferralData();
+                    window.farmingSystem.loadReferralData(); // Обновляем данные при переключении на вкладку
                 }
                 
+                // Обновляем активную навигацию
                 document.querySelectorAll('.nav-item').forEach(nav => {
                     nav.classList.remove('active');
                 });
                 this.classList.add('active');
             });
         });
-
+    
+        // Инициализация карточек игр
+        document.querySelectorAll('.game-card').forEach((card, index) => {
+            card.style.setProperty('--card-index', index);
+        });
+        // Периодическая синхронизация каждые 10 секунд
         setInterval(() => {
             this.syncWithServer();
         }, 10000);
 
+        // Синхронизация при возвращении вкладки в активное состояние
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 this.syncWithServer();
             }
         });
 
+        // Синхронизация при восстановлении подключения к интернету
         window.addEventListener('online', () => {
             this.syncWithServer();
         });
@@ -840,7 +704,7 @@ class FarmingSystem {
         }, 1000);
     }
 }
-// Вспомогательные функции
+
 function showToast(message) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -870,6 +734,11 @@ function createRipple(event) {
     });
 }
 
+//обработчики для всех кнопок
+document.querySelectorAll('.play-btn, .farming-button').forEach(button => {
+    button.addEventListener('click', createRipple);
+});
+
 function showLoadingIndicator() {
     const loadingDiv = document.createElement('div');
     loadingDiv.id = 'loading-indicator';
@@ -887,113 +756,252 @@ function hideLoadingIndicator() {
     }
 }
 
-function initUserData() {
-    const tg = window.Telegram.WebApp;
+function initBackgroundEffect() {
+    const canvas = document.getElementById('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        const user = tg.initDataUnsafe.user;
-        
-        const usernameElement = document.querySelector('.username');
-        usernameElement.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-        
-        const userIdElement = document.querySelector('.user-id');
-        userIdElement.textContent = `ID: ${user.id}`;
-        
-        const avatarElement = document.querySelector('.avatar');
-        const userId = user.id;
-        const photoUrl = `https://cdn4.telegram-cdn.org/file/user${userId}.jpg`;
-        
-        avatarElement.style.backgroundImage = `url(${photoUrl})`;
-        avatarElement.style.backgroundSize = 'cover';
-        avatarElement.style.backgroundPosition = 'center';
-    }
-}
+    const vertexShaderSource = `
+        attribute vec2 position;
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    `;
 
-function initThemeToggle() {
-    const themeToggle = document.querySelector('.theme-toggle');
-    const icon = themeToggle.querySelector('i');
-    
-    if (localStorage.getItem('theme') === 'dark') {
-        document.body.setAttribute('data-theme', 'dark');
-        icon.classList.remove('fa-moon');
-        icon.classList.add('fa-sun');
-        isDarkTheme = true;
-    }
+    const fragmentShaderSource = `
+        precision highp float;
+        uniform vec2 resolution;
+        uniform vec2 blobs[8];
+        uniform float time;
+        uniform bool isDark;
 
-    themeToggle.addEventListener('click', function() {
-        const icon = this.querySelector('i');
-        icon.style.animation = 'none';
-        void icon.offsetWidth;
-        icon.style.animation = 'themeToggleRotate 0.5s ease';
-
-        isDarkTheme = !isDarkTheme;
-        if (isDarkTheme) {
-            document.body.setAttribute('data-theme', 'dark');
-            icon.classList.remove('fa-moon');
-            icon.classList.add('fa-sun');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.body.removeAttribute('data-theme');
-            icon.classList.remove('fa-sun');
-            icon.classList.add('fa-moon');
-            localStorage.setItem('theme', 'light');
+        float getBlobField(vec2 point, vec2 center, float radius) {
+            float dist = length(point - center);
+            return radius / dist;
         }
 
-        showToast(isDarkTheme ? 'Dark mode enabled' : 'Light mode enabled');
-    });
+        void main() {
+            vec2 uv = gl_FragCoord.xy / resolution.xy;
+            uv = uv * 2.0 - 1.0;
+            uv.x *= resolution.x / resolution.y;
+            
+            float field = 0.0;
+            
+            for(int i = 0; i < 8; i++) {
+                field += getBlobField(uv, blobs[i], 0.065);
+            }
 
-    themeToggle.style.opacity = '0';
-    setTimeout(() => {
-        themeToggle.style.transition = 'opacity 0.3s ease';
-        themeToggle.style.opacity = '1';
-    }, 100);
-}
+            vec3 color;
+            float pulse = abs(sin(time * 0.5));
+            
+            if (isDark) {
+                color = vec3(0.0 + pulse * 0.4);
+            } else {
+                color = vec3(pulse * 0.5);
+            }
+            
+            float alpha = smoothstep(1.0, 1.0, field) * 0.2;
+            
+            gl_FragColor = vec4(color, alpha);
+        }
+    `;
 
-// Инициализация приложения
-document.addEventListener('DOMContentLoaded', () => {
-    // Создаем и добавляем canvas перед контейнером
-    canvas = document.createElement('canvas');
-    canvas.id = 'canvas';
-    document.body.insertBefore(canvas, document.querySelector('.container'));
-    canvas.classList.add('fade-in');
-
-    // Инициализация WebGL
-    const webglLocations = setupWebGL();
-    if (webglLocations) {
-        updateBlobsWithMouse = addInteractivity();
+    function createShader(type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
         
-        // Настройка размера canvas и обработчиков событий
-        resizeCanvas();
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(resizeCanvas, 250);
-        });
-
-        // Запуск анимации
-        requestAnimationFrame((time) => render(time, webglLocations));
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.error('Ошибка компиляции шейдера:', gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader);
+            return null;
+        }
+        return shader;
     }
 
-    // Остальная инициализация...
+    const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Ошибка линковки программы:', gl.getProgramInfoLog(program));
+    }
+
+    gl.useProgram(program);
+
+    const vertices = new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    const positionLocation = gl.getAttribLocation(program, 'position');
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    const resolutionLocation = gl.getUniformLocation(program, 'resolution');
+    const blobsLocation = gl.getUniformLocation(program, 'blobs');
+    const timeLocation = gl.getUniformLocation(program, 'time');
+    const isDarkLocation = gl.getUniformLocation(program, 'isDark');
+
+    const blobs = Array(8).fill().map(() => ({
+        x: Math.random() * 2 - 1,
+        y: Math.random() * 2 - 1,
+        vx: (Math.random() - 0.5) * 0.009,
+        vy: (Math.random() - 0.5) * 0.009
+    }));
+
+    function updateBlobs() {
+        blobs.forEach(blob => {
+            blob.x += blob.vx;
+            blob.y += blob.vy;
+
+            if (Math.abs(blob.x) > 1) blob.vx *= -1;
+            if (Math.abs(blob.y) > 1) blob.vy *= -1;
+        });
+    }
+
+    function resizeCanvas() {
+        const pixelRatio = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * pixelRatio;
+        canvas.height = window.innerHeight * pixelRatio;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    function render(time) {
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        
+        updateBlobs();
+
+        gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+        gl.uniform1f(timeLocation, time * 0.001);
+        gl.uniform1i(isDarkLocation, window.isDarkTheme ? 1 : 0);
+
+        const blobPositions = new Float32Array(blobs.flatMap(blob => [blob.x, blob.y]));
+        
+        gl.uniform2fv(blobsLocation, blobPositions);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        requestAnimationFrame(render);
+    }
+
+    requestAnimationFrame(render);
+}
+
+// Инициализация приложения при загрузке DOM
+document.addEventListener('DOMContentLoaded', () => {
     initUserData();
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
+    window.farmingSystem.initReferralSystem();
+    initBackgroundEffect();
 
-    // Добавление обработчиков для кнопок
-    document.querySelectorAll('.play-btn, .farming-button').forEach(button => {
-        button.addEventListener('click', createRipple);
+    // Инициализация игровых карточек
+    const playSection = document.createElement('div');
+    playSection.className = 'play-section';
+    playSection.style.display = 'none';
+    
+    playSection.innerHTML = `
+        <div class="games-container">
+            <div class="game-card">
+                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Dice Game">
+                <div class="game-overlay">
+                    <div class="game-status new">New</div>
+                    <div class="game-title">Dice Game</div>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <span>🎲 Multiplier x2</span>
+                        </div>
+                        <div class="stat">
+                            <span>💰 Min Bet: 10</span>
+                        </div>
+                    </div>
+                    <button class="play-btn">Play Now</button>
+                </div>
+            </div>
+
+            <div class="game-card">
+                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Coin Flip">
+                <div class="game-overlay">
+                    <div class="game-status popular">Popular</div>
+                    <div class="game-title">Coin Flip</div>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <span>🎯 50/50</span>
+                        </div>
+                        <div class="stat">
+                            <span>💰 Min Bet: 5</span>
+                        </div>
+                    </div>
+                    <button class="play-btn">Play Now</button>
+                </div>
+            </div>
+
+            <div class="game-card">
+                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Slots">
+                <div class="game-overlay">
+                    <div class="game-status premium">Premium</div>
+                    <div class="game-title">Slots</div>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <span>🎰 Jackpot</span>
+                        </div>
+                        <div class="stat">
+                            <span>💰 Min Bet: 20</span>
+                        </div>
+                    </div>
+                    <button class="play-btn premium-btn">Play Now</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.querySelector('.container').appendChild(playSection);
+
+    // Обработчики для кнопок игр
+    document.querySelectorAll('.play-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const gameTitle = this.closest('.game-card').querySelector('.game-title').textContent;
+            showToast(`Starting ${gameTitle}...`);
+            
+            // Здесь можно добавить логику запуска игр
+            this.classList.add('disabled');
+            setTimeout(() => {
+                this.classList.remove('disabled');
+            }, 1500);
+        });
     });
 
-    // Оптимизация для мобильных устройств
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-        blobs.length = 4;
-        blobs.forEach(blob => {
-            blob.vx *= 0.5;
-            blob.vy *= 0.5;
+    // Эффект параллакса для игровых карточек
+    document.querySelectorAll('.game-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const { left, top, width, height } = card.getBoundingClientRect();
+            const x = (e.clientX - left) / width - 0.5;
+            const y = (e.clientY - top) / height - 0.5;
+            
+            const image = card.querySelector('.game-image');
+            image.style.transform = `
+                scale(1.05) 
+                rotateY(${x * 5}deg) 
+                rotateX(${y * -5}deg)
+            `;
         });
-    }
 
-    // Проверка производительности
-    checkPerformance();
+        card.addEventListener('mouseleave', () => {
+            const image = card.querySelector('.game-image');
+            image.style.transform = 'scale(1) rotateY(0) rotateX(0)';
+        });
+    });
 });
