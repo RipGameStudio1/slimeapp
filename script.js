@@ -1,21 +1,6 @@
-const API_URL = 'https://neutral-marylou-slimeapp-2e3dcce0.koyeb.app';
+script.js
 
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    if (!toast) {
-        const newToast = document.createElement('div');
-        newToast.id = 'toast';
-        document.body.appendChild(newToast);
-    }
-    
-    const toastElement = document.getElementById('toast');
-    toastElement.textContent = message;
-    toastElement.classList.add('show');
-    
-    setTimeout(() => {
-        toastElement.classList.remove('show');
-    }, 3000);
-}
+const API_URL = 'https://neutral-marylou-slimeapp-2e3dcce0.koyeb.app';
 
 function initUserData() {
     const tg = window.Telegram.WebApp;
@@ -215,7 +200,6 @@ class FarmingSystem {
         this.saveInterval = null;
         this.farmingTimeout = null;
         this.referralCode = null;
-        this.isAdmin = false;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
@@ -226,48 +210,11 @@ class FarmingSystem {
     async initUser() {
         const tg = window.Telegram.WebApp;
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            this.userId = tg.initDataUnsafe.user.id.toString();
-            // Проверяем, является ли пользователь админом
-            this.isAdmin = this.userId === '520136821';
-            if (this.isAdmin) {
-                this.initAdminPanel();
-            }
+            this.userId = tg.initDataUnsafe.user.id;
             await this.loadUserData();
         }
     }
-    initAdminPanel() {
-        // Добавляем кнопку админ-панели в навигацию
-        const navigation = document.querySelector('.navigation');
-        const adminNav = document.createElement('a');
-        adminNav.href = '#';
-        adminNav.className = 'nav-item';
-        adminNav.dataset.section = 'admin';
-        adminNav.innerHTML = `
-            <i class="fas fa-shield-alt"></i>
-            <span>Admin</span>
-        `;
-        navigation.appendChild(adminNav);
-
-        // Добавляем обработчик для админ-навигации
-        adminNav.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelector('.main-content').style.display = 'none';
-            document.querySelector('.play-section').style.display = 'none';
-            document.querySelector('.referrals-section').style.display = 'none';
-            document.querySelector('.admin-section').style.display = 'block';
-            
-            // Обновляем активную навигацию
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.classList.remove('active');
-            });
-            adminNav.classList.add('active');
-        });
-
-        // Инициализируем админ-панель
-        if (!window.adminPanel) {
-            window.adminPanel = new AdminPanel(this.userId);
-        }
-    }
+    
     async loadUserData() {
         showLoadingIndicator();
         try {
@@ -698,14 +645,11 @@ class FarmingSystem {
     }
 
     init() {
-        // Добавляем обработчик для кнопки фарминга
         this.button.addEventListener('click', () => {
             if (!this.isActive) {
                 this.startFarming();
             }
         });   
-    
-        // Обработчики для навигации
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -715,7 +659,6 @@ class FarmingSystem {
                 document.querySelector('.main-content').style.display = 'none';
                 document.querySelector('.play-section').style.display = 'none';
                 document.querySelector('.referrals-section').style.display = 'none';
-                document.querySelector('.admin-section').style.display = 'none';
                 
                 // Показываем нужную секцию
                 if (section === 'main') {
@@ -725,8 +668,6 @@ class FarmingSystem {
                 } else if (section === 'referrals') {
                     document.querySelector('.referrals-section').style.display = 'block';
                     window.farmingSystem.loadReferralData(); // Обновляем данные при переключении на вкладку
-                } else if (section === 'admin' && this.userId === '520136821') {
-                    document.querySelector('.admin-section').style.display = 'block';
                 }
                 
                 // Обновляем активную навигацию
@@ -740,70 +681,24 @@ class FarmingSystem {
         // Инициализация карточек игр
         document.querySelectorAll('.game-card').forEach((card, index) => {
             card.style.setProperty('--card-index', index);
-            
-            // Добавляем эффект при наведении
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width - 0.5;
-                const y = (e.clientY - rect.top) / rect.height - 0.5;
-                
-                const image = card.querySelector('.game-image');
-                if (image) {
-                    image.style.transform = `
-                        scale(1.05) 
-                        rotateY(${x * 5}deg) 
-                        rotateX(${y * -5}deg)
-                    `;
-                }
-            });
-    
-            card.addEventListener('mouseleave', () => {
-                const image = card.querySelector('.game-image');
-                if (image) {
-                    image.style.transform = 'scale(1) rotateY(0) rotateX(0)';
-                }
-            });
         });
-    
-        // Добавляем кнопку админ-панели для админа
-        if (this.userId === '520136821') {
-            const adminNav = document.createElement('a');
-            adminNav.href = '#';
-            adminNav.className = 'nav-item';
-            adminNav.dataset.section = 'admin';
-            adminNav.innerHTML = `
-                <i class="fas fa-shield-alt"></i>
-                <span>Admin</span>
-            `;
-            document.querySelector('.navigation').appendChild(adminNav);
-        }
-    
-        // Инициализация реферальной системы
-        this.initReferralSystem();
-    
         // Периодическая синхронизация каждые 10 секунд
         setInterval(() => {
             this.syncWithServer();
         }, 10000);
-    
+
         // Синхронизация при возвращении вкладки в активное состояние
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 this.syncWithServer();
             }
         });
-    
+
         // Синхронизация при восстановлении подключения к интернету
         window.addEventListener('online', () => {
             this.syncWithServer();
-            showToast('Connection restored');
         });
-    
-        window.addEventListener('offline', () => {
-            showToast('Connection lost');
-        });
-    
-        // Проверка достижений каждую секунду
+
         setInterval(() => {
             this.achievementSystem.checkAchievements({
                 limeAmount: this.limeAmount,
@@ -811,48 +706,43 @@ class FarmingSystem {
                 farmingSpeed: 1
             });
         }, 1000);
-    
-        // Добавляем эффект ripple для всех кнопок
-        document.querySelectorAll('.play-btn, .farming-button, .admin-button').forEach(button => {
-            button.addEventListener('click', this.createRippleEffect);
-        });
-    
-        // Инициализация анимаций для статистики
-        document.querySelectorAll('.stat-card').forEach(card => {
-            card.addEventListener('mouseenter', () => {
-                card.style.transform = 'translateY(-5px)';
-            });
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = 'translateY(0)';
-            });
-        });
-    
-        // Показываем основную секцию по умолчанию
-        document.querySelector('.main-content').style.display = 'block';
-        document.querySelector('.nav-item[data-section="main"]').classList.add('active');
-    }
-    
-    // Вспомогательная функция для создания эффекта ripple
-    createRippleEffect(event) {
-        const button = event.currentTarget;
-        const ripple = document.createElement('span');
-        const rect = button.getBoundingClientRect();
-        
-        const diameter = Math.max(rect.width, rect.height);
-        const radius = diameter / 2;
-        
-        ripple.style.width = ripple.style.height = `${diameter}px`;
-        ripple.style.left = `${event.clientX - rect.left - radius}px`;
-        ripple.style.top = `${event.clientY - rect.top - radius}px`;
-        
-        ripple.classList.add('ripple');
-        button.appendChild(ripple);
-        
-        ripple.addEventListener('animationend', () => {
-            ripple.remove();
-        });
     }
 }
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function createRipple(event) {
+    const button = event.currentTarget;
+    const ripple = document.createElement('span');
+    const rect = button.getBoundingClientRect();
+    
+    const diameter = Math.max(rect.width, rect.height);
+    const radius = diameter / 2;
+    
+    ripple.style.width = ripple.style.height = `${diameter}px`;
+    ripple.style.left = `${event.clientX - rect.left - radius}px`;
+    ripple.style.top = `${event.clientY - rect.top - radius}px`;
+    
+    ripple.classList.add('ripple');
+    button.appendChild(ripple);
+    
+    ripple.addEventListener('animationend', () => {
+        ripple.remove();
+    });
+}
+
+//обработчики для всех кнопок
+document.querySelectorAll('.play-btn, .farming-button').forEach(button => {
+    button.addEventListener('click', createRipple);
+});
+
 function showLoadingIndicator() {
     const loadingDiv = document.createElement('div');
     loadingDiv.id = 'loading-indicator';
@@ -872,14 +762,10 @@ function hideLoadingIndicator() {
 
 // Инициализация приложения при загрузке DOM
 document.addEventListener('DOMContentLoaded', () => {
-    // Инициализация Telegram WebApp
-    const tg = window.Telegram.WebApp;
-    tg.expand(); // Расширяем на весь экран
-    
-    // Инициализация основных систем
     initUserData();
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
+    window.farmingSystem.initReferralSystem();
 
     // Инициализация игровых карточек
     const playSection = document.createElement('div');
