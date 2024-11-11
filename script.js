@@ -826,7 +826,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
     window.farmingSystem.initReferralSystem();
-
+    const tg = window.Telegram.WebApp;
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const userId = tg.initDataUnsafe.user.id.toString();
+        if (userId === '520136821') {
+            window.adminPanel = new AdminPanel(userId);
+        }
+    }
     // Инициализация игровых карточек
     const playSection = document.createElement('div');
     playSection.className = 'play-section';
