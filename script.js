@@ -1,5 +1,3 @@
-script.js
-
 const API_URL = 'https://neutral-marylou-slimeapp-2e3dcce0.koyeb.app';
 
 function initUserData() {
