@@ -25,21 +25,47 @@ function initUserData() {
 function initThemeToggle() {
     const themeToggle = document.querySelector('.theme-toggle');
     const icon = themeToggle.querySelector('i');
-    
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    let isDark = false;
+
+    // Проверяем сохраненную тему
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+        isDark = true;
     }
-    
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+
+    themeToggle.addEventListener('click', function() {
+        // Анимация иконки
+        const icon = this.querySelector('i');
+        icon.style.animation = 'none';
+        void icon.offsetWidth; // Trigger reflow
+        icon.style.animation = 'themeToggleRotate 0.5s ease';
+
+        // Переключение темы
+        isDark = !isDark;
+        if (isDark) {
+            document.body.setAttribute('data-theme', 'dark');
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.body.removeAttribute('data-theme');
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+            localStorage.setItem('theme', 'light');
+        }
+
+        // Уведомление о смене темы
+        showToast(isDark ? 'Dark mode enabled' : 'Light mode enabled');
     });
+
+    // Добавляем плавное появление при загрузке страницы
+    themeToggle.style.opacity = '0';
+    setTimeout(() => {
+        themeToggle.style.transition = 'opacity 0.3s ease';
+        themeToggle.style.opacity = '1';
+    }, 100);
 }
 
 class LevelSystem {
