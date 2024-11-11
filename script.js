@@ -362,7 +362,7 @@ class FarmingSystem {
             referralLink.value = 'Loading...';
             // Попробуем загрузить код еще раз
             this.loadReferralData();
-
+        }
         // Обновляем список рефералов
         const referralListBody = document.getElementById('referral-list-body');
         referralListBody.innerHTML = '';
