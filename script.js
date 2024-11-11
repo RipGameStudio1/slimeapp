@@ -797,7 +797,7 @@ class FarmingSystem {
             ripple.remove();
         });
     }
-
+}
 function showLoadingIndicator() {
     const loadingDiv = document.createElement('div');
     loadingDiv.id = 'loading-indicator';
