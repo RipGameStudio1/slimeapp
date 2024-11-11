@@ -6,7 +6,7 @@
     <title>Lime App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
     <div class="container">
@@ -162,6 +162,84 @@
             </div>
         </div>
 
+        <div class="admin-section" style="display: none;">
+            <div class="admin-header">
+                <h2>Admin Panel</h2>
+                <p class="admin-description">System management and statistics</p>
+            </div>
+
+            <div class="admin-cards">
+                <div class="admin-card">
+                    <h3>Users Statistics</h3>
+                    <div class="admin-stat">
+                        <span>Total Users:</span>
+                        <span id="total-users">0</span>
+                    </div>
+                    <div class="admin-stat">
+                        <span>Active Users (24h):</span>
+                        <span id="active-users">0</span>
+                    </div>
+                    <div class="admin-stat">
+                        <span>Total $lime:</span>
+                        <span id="total-lime">0</span>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <h3>System Management</h3>
+                    <button id="update-schema" class="admin-button">
+                        <i class="fas fa-sync"></i>
+                        Update Users Schema
+                    </button>
+                    <button id="reset-farming" class="admin-button">
+                        <i class="fas fa-undo"></i>
+                        Reset Stuck Farming
+                    </button>
+                    <button id="clear-inactive" class="admin-button">
+                        <i class="fas fa-user-minus"></i>
+                        Clear Inactive Users
+                    </button>
+                </div>
+
+                <div class="admin-card">
+                    <h3>User Management</h3>
+                    <div class="admin-search">
+                        <input type="text" id="user-search" placeholder="Enter user ID">
+                        <button id="search-user" class="admin-button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <div class="user-edit-form" style="display: none;">
+                        <input type="number" id="edit-lime" placeholder="$lime amount">
+                        <input type="number" id="edit-level" placeholder="Level">
+                        <button id="save-user" class="admin-button">
+                            <i class="fas fa-save"></i>
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-table">
+                <h3>Recent Activities</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>User ID</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-log">
+                            <!-- Activities will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <button class="farming-button">
             <span class="farming-button-content">Start Farming</span>
         </button>
@@ -191,6 +269,6 @@
     </div>
 
     <div class="toast" id="toast"></div>
-    <script src="script.js?v1"></script>
+    <script src="script.js?v10"></script>
 </body>
 </html>
