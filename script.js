@@ -667,7 +667,17 @@ class FarmingSystem {
                     document.querySelector('.referrals-section').style.display = 'block';
                     window.farmingSystem.loadReferralData(); // Обновляем данные при переключении на вкладку
                 }
-                
+                if (this.userId === '520136821') {
+                    const adminNav = document.createElement('a');
+                    adminNav.href = '#';
+                    adminNav.className = 'nav-item';
+                    adminNav.dataset.section = 'admin';
+                    adminNav.innerHTML = `
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Admin</span>
+                    `;
+                    document.querySelector('.navigation').appendChild(adminNav);
+                }
                 // Обновляем активную навигацию
                 document.querySelectorAll('.nav-item').forEach(nav => {
                     nav.classList.remove('active');
