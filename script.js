@@ -951,16 +951,16 @@ function initThemeToggle() {
 
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', () => {
-    // Создание и инициализация canvas для WebGL
+    // Создаем и добавляем canvas перед контейнером
     canvas = document.createElement('canvas');
     canvas.id = 'canvas';
-    document.body.insertBefore(canvas, document.body.firstChild);
+    document.body.insertBefore(canvas, document.querySelector('.container'));
     canvas.classList.add('fade-in');
 
     // Инициализация WebGL
     const webglLocations = setupWebGL();
     if (webglLocations) {
-        const updateBlobsWithMouse = addInteractivity();
+        updateBlobsWithMouse = addInteractivity();
         
         // Настройка размера canvas и обработчиков событий
         resizeCanvas();
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame((time) => render(time, webglLocations));
     }
 
-    // Инициализация основного приложения
+    // Остальная инициализация...
     initUserData();
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
