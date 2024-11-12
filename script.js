@@ -513,7 +513,10 @@ class FarmingSystem {
                 await this.completeFarming();
                 return;
             }
-            
+            if (this.slimeNinjaAttempts !== serverData.slimeNinjaAttempts) {
+                this.slimeNinjaAttempts = serverData.slimeNinjaAttempts;
+                this.updateSlimeNinjaAttempts();
+            }
             if (serverData.isActive && serverData.startTime) {
                 const serverStartTime = new Date(serverData.startTime).getTime();
                 const now = Date.now();
@@ -1136,31 +1139,34 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.play-btn').forEach(button => {
         button.addEventListener('click', async function(e) {
             e.preventDefault();
+            
+            if (this.classList.contains('disabled')) {
+                showToast('Недостаточно попыток! Вернитесь завтра или заработайте больше.');
+                return;
+            }
+    
             const gameCard = this.closest('.game-card');
             const gameTitle = gameCard.querySelector('.game-title').textContent;
             
             if (gameTitle === 'SLIME NINJA') {
-                // Сначала проверяем актуальное количество попыток с сервера
                 try {
                     const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}`);
                     if (!response.ok) throw new Error('Failed to fetch user data');
                     
                     const userData = await response.json();
-                    window.farmingSystem.slimeNinjaAttempts = userData.slimeNinjaAttempts;
-                    window.farmingSystem.updateSlimeNinjaAttempts();
-    
+                    
                     if (userData.slimeNinjaAttempts <= 0) {
                         showToast('Недостаточно попыток! Вернитесь завтра или заработайте больше.');
+                        window.farmingSystem.slimeNinjaAttempts = 0;
+                        window.farmingSystem.updateSlimeNinjaAttempts();
                         return;
                     }
     
-                    // Если попытки есть, уменьшаем их количество
                     const success = await window.farmingSystem.updateAttempts(
                         userData.slimeNinjaAttempts - 1
                     );
                     
                     if (success) {
-                        // Сохраняем текущее количество попыток в localStorage перед переходом
                         localStorage.setItem('currentAttempts', userData.slimeNinjaAttempts - 1);
                         window.location.href = 'cutterindex.html';
                     } else {
