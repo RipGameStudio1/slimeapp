@@ -1,1 +1,1051 @@
-hello world
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Fruit Ninja Deluxe</title>
+    <style>
+        :root {
+            --tg-theme-bg-color: #000000;
+            --tg-theme-text-color: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            background: var(--tg-theme-bg-color);
+            font-family: 'Arial', sans-serif;
+        }
+
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #menuBackgroundCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .back-button {
+			position: absolute;
+			top: 2vh;
+			left: 2vw;
+			z-index: 5;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			color: white;
+			text-decoration: none;
+			font-size: calc(14px + 0.8vw);
+			padding: 10px 15px;
+			background: rgba(0,0,0,0.6);
+			border-radius: 5px;
+			transition: all 0.3s ease;
+		}
+
+		.back-button:hover {
+			background: rgba(255,255,255,0.1);
+		}
+
+		.back-button i {
+			font-size: 0.9em;
+		}
+       
+	   .back-arrow {
+            font-size: 1.2em;
+        }
+
+        .ui-element {
+            position: fixed;
+            color: white;
+            z-index: 2;
+            font-weight: 300;
+            letter-spacing: 1px;
+            transform-origin: top right;
+            display: none;
+        }
+
+        #score {
+            top: 2vh;
+            right: 2vw;
+            font-size: calc(16px + 1.5vw);
+            background: rgba(0,0,0,0.8);
+            padding: 1vh 1.5vw;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #timer {
+            top: 2vh;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: calc(16px + 1.5vw);
+            background: rgba(0,0,0,0.8);
+            padding: 1vh 1.5vw;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #sound-toggle {
+            position: fixed;
+            bottom: 2vh;
+            right: 2vw;
+            font-size: calc(20px + 1vw);
+            background: rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 5;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        #sound-toggle:hover {
+            background: rgba(255,255,255,0.2);
+        }
+		#combo {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: calc(20px + 2vw);
+            color: white;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 2;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            pointer-events: none;
+            display: none;
+        }
+
+        .lives {
+            position: fixed;
+            top: 2vh;
+            left: 2vw;
+            font-size: calc(16px + 1vw);
+            color: white;
+            z-index: 2;
+            letter-spacing: 5px;
+            display: none;
+        }
+
+        .menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 4;
+        }
+
+        .menu-title {
+            font-size: calc(24px + 3vw);
+            color: var(--tg-theme-text-color);
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin-bottom: 4vh;
+            font-weight: 300;
+            text-shadow: none;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .menu-button {
+            font-size: calc(12px + 0.8vw);
+            color: var(--tg-theme-text-color);
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            padding: 1.5vh 3vw;
+            margin: 1vh;
+            min-width: calc(150px + 5vw);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 300;
+        }
+
+        .menu-button:hover {
+            background: var(--tg-theme-text-color);
+            color: var(--tg-theme-bg-color);
+        }
+
+        .points-popup {
+            position: fixed;
+            color: white;
+            font-size: calc(14px + 1vw);
+            pointer-events: none;
+            z-index: 2;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            font-weight: bold;
+            animation: pointsFloat 0.8s ease-out forwards;
+        }
+
+        @keyframes pointsFloat {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50px);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #activeEffects {
+            position: fixed;
+            left: 2vw;
+            top: 10vh;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 2;
+        }
+
+        .effect-indicator {
+            background: rgba(0,0,0,0.8);
+            padding: 5px 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: calc(12px + 0.8vw);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="menuBackgroundCanvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="score" class="ui-element">0.0</div>
+    <div id="timer" class="ui-element">5:00</div>
+    <div id="combo" class="ui-element"></div>
+    <div id="activeEffects" class="ui-element"></div>
+    <div class="lives">❤️❤️❤️</div>
+
+    <div id="mainMenu" class="menu">
+		<a href="index.html" class="back-button">
+			<i class="fas fa-arrow-left"></i>
+			<span>BACK</span>
+		</a>
+		<div id="sound-toggle">🔊</div>
+        <h1 class="menu-title">Fruit Ninja</h1>
+        <div id="userName" style="color: white; font-size: calc(14px + 1vw); margin-bottom: 3vh; opacity: 0.8;"></div>
+        <button class="menu-button" data-action="play">Play</button>
+        <button class="menu-button" data-action="tutorial">Tutorial</button>
+    </div>
+
+<script>
+// Инициализация Telegram Web App
+const tg = window.Telegram.WebApp;
+tg.expand(); // Раскрываем на весь экран
+
+// Устанавливаем основной цвет
+document.documentElement.style.setProperty('--tg-theme-bg-color', tg.backgroundColor || '#000000');
+document.documentElement.style.setProperty('--tg-theme-text-color', tg.textColor || '#ffffff');
+
+// Показываем имя пользователя
+function displayUserName() {
+    const userNameElement = document.getElementById('userName');
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
+        const name = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+        userNameElement.textContent = `Welcome, ${name}!`;
+    } else {
+        userNameElement.textContent = 'Welcome, Player!';
+    }
+}
+
+// Константы и настройки
+const GAME_DURATION = 180; // 3 минуты в секундах
+
+const FRUITS = [
+    { emoji: '🍎', points: 0.10, color: '#ffffff' },
+    { emoji: '🍊', points: 0.20, color: '#ffffff' },
+    { emoji: '🍉', points: 0.30, color: '#ffffff' },
+    { emoji: '🍇', points: 0.40, color: '#ffffff' },
+    { emoji: '🍍', points: 0.50, color: '#ffffff' },
+    { emoji: '🥝', points: 0.60, color: '#ffffff' }
+];
+
+const BOMBS = [
+    { emoji: '💣', color: '#ffffff', points: -50, isBomb: true }
+];
+
+const POWERUPS = [
+    { 
+        emoji: '❄️', 
+        effect: 'slowMotion', 
+        duration: 5000,
+        color: '#00ffff',
+        points: 0,
+        description: 'Slow Motion'
+    },
+    { 
+        emoji: '⭐', 
+        effect: 'doublePoints', 
+        duration: 8000,
+        color: '#ffff00',
+        points: 0,
+        description: 'Double Points'
+    },
+    { 
+        emoji: '🛡️', 
+        effect: 'shield', 
+        duration: 10000,
+        color: '#00ff00',
+        points: 0,
+        description: 'Shield'
+    }
+];
+
+// Глобальные переменные
+let canvas, ctx;
+let soundEnabled = true;
+let game = {
+    state: 'menu',
+    score: 0,
+    combo: 0,
+    comboTimer: 0,
+    lives: 3,
+    fruits: [],
+    particles: [],
+    timeRemaining: GAME_DURATION,
+    activeEffects: new Set(),
+    powerups: [],
+    timeScale: 1,
+    lastTime: 0,
+    pointMultiplier: 1,
+    currentSlice: null
+};
+
+// Класс для фоновых фруктов меню
+class MenuFruit {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.reset();
+        this.emoji = FRUITS[Math.floor(Math.random() * FRUITS.length)].emoji;
+        this.size = Math.random() * 40 + 20;
+        this.rotation = 0;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+    }
+
+    reset() {
+        this.x = Math.random() * this.canvas.width;
+        this.y = -50;
+        this.speedY = Math.random() * 2 + 1;
+        this.speedX = (Math.random() - 0.5) * 2;
+    }
+
+    update() {
+        this.y += this.speedY;
+        this.x += this.speedX;
+        this.rotation += this.rotationSpeed;
+
+        if (this.y > this.canvas.height + 50) {
+            this.reset();
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.font = `${this.size}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = this.getColor();
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = 'white';
+        ctx.fillText(this.emoji, 0, 0);
+        ctx.restore();
+    }
+
+    getColor() {
+        switch(this.emoji) {
+            case '🍎': return '#ff4444';
+            case '🍊': return '#ffaa44';
+            case '🍉': return '#ff4477';
+            case '🍇': return '#aa44ff';
+            case '🍍': return '#ffdd44';
+            case '🥝': return '#44ff44';
+            default: return '#ffffff';
+        }
+    }
+}
+// Управление фоном меню
+const menuBackground = {
+    canvas: null,
+    ctx: null,
+    fruits: [],
+    isActive: true,
+
+    init() {
+        this.canvas = document.getElementById('menuBackgroundCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.resize();
+        this.fruits = Array(15).fill(null).map(() => new MenuFruit(this.canvas));
+        window.addEventListener('resize', () => this.resize());
+        this.animate();
+    },
+
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    },
+
+    animate() {
+        if (!this.isActive) return;
+
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.fruits.forEach(fruit => {
+            fruit.update();
+            fruit.draw(this.ctx);
+        });
+
+        requestAnimationFrame(() => this.animate());
+    },
+
+    show() {
+        this.isActive = true;
+        this.canvas.style.display = 'block';
+        this.animate();
+    },
+
+    hide() {
+        this.isActive = false;
+        this.canvas.style.display = 'none';
+    }
+};
+
+// Класс Fruit
+class Fruit {
+    constructor(type) {
+        if (type === 'random') {
+            type = FRUITS[Math.floor(Math.random() * FRUITS.length)];
+        }
+        
+        const spawnSide = Math.random() > 0.5 ? 'left' : 'right';
+        const margin = Math.min(canvas.width, canvas.height) * 0.125;
+        
+        this.x = spawnSide === 'left' ? margin : canvas.width - margin;
+        this.y = canvas.height + 50;
+        this.speedX = (spawnSide === 'left' ? 1 : -1) * (0.4 + Math.random() * 0.4);
+        this.speedY = (-9 - Math.random() * 3);
+        this.rotation = 0;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+        this.emoji = type.emoji;
+        this.points = type.points;
+        this.color = type.color || '#ffffff';
+        this.isBomb = type.isBomb || false;
+        this.isPowerup = type.isPowerup || false;
+        this.powerupType = type.powerupType;
+        this.sliced = false;
+        this.size = Math.min(canvas.width, canvas.height) * 0.125;
+        this.gravity = 0.1;
+        this.opacity = 1;
+        this.fadeSpeed = 0.1;
+    }
+
+    update() {
+        if (this.sliced) {
+            this.opacity -= this.fadeSpeed * game.timeScale;
+            return this.opacity > 0;
+        }
+
+        this.speedY += this.gravity * game.timeScale;
+        this.speedY = Math.min(this.speedY, 10);
+
+        this.x += this.speedX * game.timeScale;
+        this.y += this.speedY * game.timeScale;
+        this.rotation += this.rotationSpeed * game.timeScale;
+
+        return this.y <= canvas.height + 100;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.opacity;
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.font = `${this.size}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = this.color;
+        ctx.fillText(this.emoji, 0, 0);
+        ctx.restore();
+    }
+}
+
+// Класс Particle
+class Particle {
+    constructor(x, y, size) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.speedX = (Math.random() - 0.5) * 10;
+        this.speedY = (Math.random() - 0.5) * 10;
+        this.life = 1;
+    }
+
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.life -= 0.02;
+        return this.life > 0;
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.life})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+// Управление звуком
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    const soundToggle = document.getElementById('sound-toggle');
+    soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+    
+    if (soundEnabled) {
+        playSound('soundToggle');
+    }
+}
+
+function playSound(soundName) {
+    if (!soundEnabled) return;
+    
+    switch(soundName) {
+        case 'slice':
+            // Звук разрезания фрукта
+            break;
+        case 'bomb':
+            // Звук взрыва бомбы
+            break;
+        case 'powerup':
+            // Звук подбора бонуса
+            break;
+        case 'gameOver':
+            // Звук окончания игры
+            break;
+        case 'soundToggle':
+            // Звук переключения звука
+            break;
+    }
+}
+
+// Функции управления игрой
+function startGame() {
+    menuBackground.hide();
+    game.state = 'playing';
+    game.score = 0;
+    game.lives = 3;
+    game.combo = 0;
+    game.fruits = [];
+    game.particles = [];
+    game.powerups = [];
+    game.timeRemaining = GAME_DURATION;
+    game.activeEffects.clear();
+    game.timeScale = 1;
+    game.pointMultiplier = 1;
+    
+    // Показываем UI элементы
+    document.querySelectorAll('.ui-element').forEach(el => el.style.display = 'block');
+    document.querySelector('.lives').style.display = 'block';
+    
+    document.getElementById('mainMenu').style.display = 'none';
+    document.getElementById('activeEffects').innerHTML = '';
+
+    if (soundEnabled) {
+        playSound('gameStart');
+    }
+
+    game.timerInterval = setInterval(() => {
+        game.timeRemaining--;
+        updateTimer();
+        if (game.timeRemaining <= 0) {
+            gameOver('Time\'s up!');
+        }
+    }, 1000);
+}
+
+function showPointsPopup(x, y, points, multiplier = 1) {
+    const popup = document.createElement('div');
+    popup.className = 'points-popup';
+    popup.textContent = `+${(points * multiplier).toFixed(1)}`;
+    popup.style.left = `${x}px`;
+    popup.style.top = `${y}px`;
+    
+    document.body.appendChild(popup);
+    
+    setTimeout(() => {
+        popup.remove();
+    }, 800);
+}
+
+function spawnFruit() {
+    const random = Math.random();
+    let fruit;
+    
+    if (random < 0.1) {
+        fruit = new Fruit(BOMBS[0]);
+    } else if (random < 0.15) {
+        const powerupType = POWERUPS[Math.floor(Math.random() * POWERUPS.length)];
+        fruit = new Fruit({
+            emoji: powerupType.emoji,
+            points: 0,
+            color: powerupType.color,
+            isPowerup: true,
+            powerupType: powerupType
+        });
+    } else {
+        fruit = new Fruit(FRUITS[Math.floor(Math.random() * FRUITS.length)]);
+    }
+    game.fruits.push(fruit);
+}
+
+function activatePowerup(powerup) {
+    if (soundEnabled) {
+        playSound('powerup');
+    }
+
+    switch (powerup.effect) {
+        case 'slowMotion':
+            game.timeScale = 0.5;
+            game.activeEffects.add('slowMotion');
+            setTimeout(() => {
+                game.timeScale = 1;
+                game.activeEffects.delete('slowMotion');
+                updateEffectIndicators();
+            }, powerup.duration);
+            break;
+            
+        case 'doublePoints':
+            game.pointMultiplier = 2;
+            game.activeEffects.add('doublePoints');
+            setTimeout(() => {
+                game.pointMultiplier = 1;
+                game.activeEffects.delete('doublePoints');
+                updateEffectIndicators();
+            }, powerup.duration);
+            break;
+            
+        case 'shield':
+            game.activeEffects.add('shield');
+            setTimeout(() => {
+                game.activeEffects.delete('shield');
+                updateEffectIndicators();
+            }, powerup.duration);
+            break;
+    }
+    
+    showPowerupEffect(powerup.effect);
+    updateEffectIndicators();
+}
+function showPowerupEffect(effectType) {
+    const effectText = {
+        'slowMotion': 'SLOW MOTION!',
+        'doublePoints': 'DOUBLE POINTS!',
+        'shield': 'SHIELD ACTIVATED!'
+    };
+    
+    const comboElement = document.getElementById('combo');
+    if (comboElement) {
+        comboElement.textContent = effectText[effectType];
+        comboElement.style.opacity = '1';
+        comboElement.style.transform = 'translate(-50%, -50%) scale(1.2)';
+        
+        setTimeout(() => {
+            comboElement.style.opacity = '0';
+            comboElement.style.transform = 'translate(-50%, -50%) scale(1)';
+        }, 1500);
+    }
+}
+
+function updateEffectIndicators() {
+    const container = document.getElementById('activeEffects');
+    container.innerHTML = '';
+    
+    game.activeEffects.forEach(effect => {
+        const indicator = document.createElement('div');
+        indicator.className = 'effect-indicator';
+        
+        const emoji = {
+            'slowMotion': '❄️',
+            'doublePoints': '⭐',
+            'shield': '🛡️'
+        }[effect];
+        
+        indicator.innerHTML = `${emoji} ${effect}`;
+        container.appendChild(indicator);
+    });
+}
+
+function updateGame(deltaTime) {
+    game.fruits = game.fruits.filter(fruit => {
+        const stillAlive = fruit.update();
+        
+        if (!fruit.sliced && fruit.y > canvas.height + 50 && !fruit.isBomb && !fruit.isPowerup) {
+            if (!game.activeEffects.has('shield')) {
+                game.lives--;
+                updateLives();
+                if (game.lives <= 0) {
+                    gameOver('Out of lives!');
+                    return false;
+                }
+            }
+            return false;
+        }
+        
+        return stillAlive;
+    });
+    
+    game.particles = game.particles.filter(particle => particle.update());
+    
+    if (game.state === 'playing' && game.fruits.length < 3) {
+        if (Math.random() < 0.02) {
+            spawnFruit();
+        }
+    }
+
+    if (Date.now() - game.comboTimer > 1000) {
+        game.combo = 0;
+    }
+}
+
+function handleTouchStart(e) {
+    if (game.state === 'playing') {
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = canvas.getBoundingClientRect();
+        game.currentSlice = {
+            points: [{
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top,
+                time: Date.now()
+            }],
+            maxLength: 15
+        };
+    }
+}
+
+function handleTouchMove(e) {
+    if (game.state === 'playing' && game.currentSlice) {
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = canvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        game.currentSlice.points.push({ x, y, time: Date.now() });
+
+        while (game.currentSlice.points.length > game.currentSlice.maxLength) {
+            game.currentSlice.points.shift();
+        }
+
+        game.fruits.forEach(fruit => {
+            if (!fruit.sliced) {
+                const dx = x - fruit.x;
+                const dy = y - fruit.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < fruit.size/2) {
+                    if (fruit.isBomb) {
+                        if (soundEnabled) {
+                            playSound('bomb');
+                        }
+                        gameOver('Bomb exploded!');
+                    } else if (fruit.isPowerup) {
+                        fruit.sliced = true;
+                        fruit.sliceTime = Date.now();
+                        activatePowerup(fruit.powerupType);
+                        createSliceEffect(fruit.x, fruit.y);
+                    } else {
+                        if (soundEnabled) {
+                            playSound('slice');
+                        }
+                        fruit.sliced = true;
+                        fruit.sliceTime = Date.now();
+                        const points = fruit.points;
+                        addScore(points);
+                        createSliceEffect(fruit.x, fruit.y);
+                        showPointsPopup(fruit.x, fruit.y, points, game.pointMultiplier);
+                        updateCombo();
+                    }
+                }
+            }
+        });
+    }
+}
+function handleTouchEnd() {
+    game.currentSlice = null;
+}
+
+function drawGame() {
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    game.particles.forEach(particle => particle.draw(ctx));
+    game.fruits.forEach(fruit => fruit.draw(ctx));
+
+    ctx.globalAlpha = 1;
+    
+    if (game.currentSlice && game.currentSlice.points.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(game.currentSlice.points[0].x, game.currentSlice.points[0].y);
+        
+        for (let i = 1; i < game.currentSlice.points.length; i++) {
+            const xc = (game.currentSlice.points[i].x + game.currentSlice.points[i - 1].x) / 2;
+            const yc = (game.currentSlice.points[i].y + game.currentSlice.points[i - 1].y) / 2;
+            ctx.quadraticCurveTo(
+                game.currentSlice.points[i - 1].x,
+                game.currentSlice.points[i - 1].y,
+                xc,
+                yc
+            );
+        }
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = Math.min(canvas.width, canvas.height) * 0.01;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+    }
+}
+
+function createSliceEffect(x, y) {
+    const particleCount = 10;
+    const particleSize = Math.min(canvas.width, canvas.height) * 0.01;
+    
+    for (let i = 0; i < particleCount; i++) {
+        game.particles.push(new Particle(x, y, particleSize));
+    }
+}
+
+function updateTimer() {
+    const minutes = Math.floor(game.timeRemaining / 60);
+    const seconds = game.timeRemaining % 60;
+    document.getElementById('timer').textContent = 
+        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function updateLives() {
+    const livesCount = Math.max(0, game.lives);
+    const hearts = '❤️'.repeat(livesCount);
+    document.querySelector('.lives').innerHTML = hearts;
+}
+
+function addScore(points) {
+    game.score = (game.score + points * game.pointMultiplier).toFixed(1);
+    game.score = parseFloat(game.score);
+    document.getElementById('score').textContent = game.score.toFixed(1);
+}
+
+function updateCombo() {
+    game.combo++;
+    game.comboTimer = Date.now();
+    
+    if (game.combo > 1) {
+        const comboElement = document.getElementById('combo');
+        comboElement.textContent = `${game.combo}x COMBO!`;
+        comboElement.style.opacity = '1';
+        
+        setTimeout(() => {
+            comboElement.style.opacity = '0';
+        }, 1000);
+    }
+}
+
+function gameOver(reason) {
+    if (game.state !== 'gameOver') {
+        game.state = 'gameOver';
+        clearInterval(game.timerInterval);
+        
+        if (soundEnabled) {
+            playSound('gameOver');
+        }
+
+        // Отправляем счет в Telegram
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            tg.sendData(JSON.stringify({
+                action: 'gameOver',
+                score: game.score,
+                reason: reason
+            }));
+        }
+        
+        const gameOverMenu = document.createElement('div');
+        gameOverMenu.className = 'menu';
+        gameOverMenu.innerHTML = `
+            <h2 class="menu-title">Game Over</h2>
+            ${reason ? `<p style="color: white; font-size: calc(14px + 1vw); margin: 2vh;">${reason}</p>` : ''}
+            <p style="color: white; font-size: calc(16px + 1.5vw); margin: 2vh;">Score: ${game.score.toFixed(1)}</p>
+            <button class="menu-button" onclick="restartGame()">Try Again</button>
+            <button class="menu-button" onclick="returnToMainMenu()">Main Menu</button>
+        `;
+        
+        document.body.appendChild(gameOverMenu);
+    }
+}
+function restartGame() {
+    const gameOverMenu = document.querySelector('.menu:not(#mainMenu)');
+    if (gameOverMenu) {
+        gameOverMenu.remove();
+    }
+    startGame();
+}
+
+function returnToMainMenu() {
+    const gameOverMenu = document.querySelector('.menu:not(#mainMenu)');
+    if (gameOverMenu) {
+        gameOverMenu.remove();
+    }
+    
+    // Скрываем UI элементы
+    document.querySelectorAll('.ui-element').forEach(el => el.style.display = 'none');
+    document.querySelector('.lives').style.display = 'none';
+    
+    document.getElementById('mainMenu').style.display = 'flex';
+    menuBackground.show();
+    game.state = 'menu';
+    
+    clearInterval(game.timerInterval);
+    game.fruits = [];
+    game.particles = [];
+    game.timeRemaining = GAME_DURATION;
+    updateTimer();
+}
+
+function showTutorial() {
+    const tutorial = document.createElement('div');
+    tutorial.className = 'menu';
+    tutorial.innerHTML = `
+        <h2 class="menu-title">How to Play</h2>
+        <div style="color: white; font-size: calc(14px + 1vw); margin: 2vh; text-align: center;">
+            <p>🔸 Swipe to slice fruits</p>
+            <p>🔸 Avoid bombs 💣</p>
+            <p>🔸 Collect power-ups:</p>
+            <p>   ❄️ Slow Motion</p>
+            <p>   ⭐ Double Points</p>
+            <p>   🛡️ Shield</p>
+            <p>🔸 Chain combos for bonus points</p>
+            <p>🔸 You have 3 minutes to score</p>
+            <p>🔸 Don't miss fruits - you have 3 lives</p>
+        </div>
+        <button class="menu-button" onclick="closeMenu(this.parentElement)">Got it!</button>
+    `;
+    document.body.appendChild(tutorial);
+}
+
+function closeMenu(menuElement) {
+    menuElement.remove();
+}
+
+// Игровой цикл
+function gameLoop(timestamp) {
+    if (!game.lastTime) game.lastTime = timestamp;
+    const deltaTime = timestamp - game.lastTime;
+    game.lastTime = timestamp;
+
+    if (game.state === 'playing') {
+        updateGame(deltaTime);
+        drawGame();
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Инициализация игры
+function init() {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Инициализация фона меню
+    menuBackground.init();
+    
+    // Отображаем имя пользователя
+    displayUserName();
+    
+    // Добавление обработчиков событий для кнопок меню
+    document.querySelector('button[data-action="play"]').addEventListener('click', startGame);
+    document.querySelector('button[data-action="tutorial"]').addEventListener('click', showTutorial);
+    
+    // Обработчик для кнопки звука
+    document.getElementById('sound-toggle').addEventListener('click', toggleSound);
+    
+    // Обработчики событий для canvas
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd);
+    
+    canvas.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        handleTouchStart({ touches: [{ clientX: e.clientX, clientY: e.clientY }] });
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        e.preventDefault();
+        if (game.currentSlice) {
+            handleTouchMove({ touches: [{ clientX: e.clientX, clientY: e.clientY }] });
+        }
+    });
+    
+    canvas.addEventListener('mouseup', handleTouchEnd);
+    
+    // Предотвращение контекстного меню
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    // Запуск игрового цикла
+    requestAnimationFrame(gameLoop);
+}
+
+// Запуск игры при загрузке страницы
+window.onload = init;
+</script>
+</body>
+</html>
