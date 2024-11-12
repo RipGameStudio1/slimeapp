@@ -462,6 +462,12 @@ class FarmingSystem {
     }
     async updateAttempts(newAmount) {
         try {
+            // Проверяем, что новое количество не отрицательное
+            if (newAmount < 0) {
+                showToast('Недостаточно попыток!');
+                return false;
+            }
+    
             const response = await fetch(`${API_URL}/api/users/${this.userId}/update-attempts`, {
                 method: 'POST',
                 headers: {
@@ -1122,18 +1128,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const gameTitle = gameCard.querySelector('.game-title').textContent;
             
             if (gameTitle === 'SLIME NINJA') {
-                if (window.farmingSystem.slimeNinjaAttempts > 0) {
+                // Сначала проверяем актуальное количество попыток с сервера
+                try {
+                    const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}`);
+                    if (!response.ok) throw new Error('Failed to fetch user data');
+                    
+                    const userData = await response.json();
+                    window.farmingSystem.slimeNinjaAttempts = userData.slimeNinjaAttempts;
+                    window.farmingSystem.updateSlimeNinjaAttempts();
+    
+                    if (userData.slimeNinjaAttempts <= 0) {
+                        showToast('Недостаточно попыток! Вернитесь завтра или заработайте больше.');
+                        return;
+                    }
+    
+                    // Если попытки есть, уменьшаем их количество
                     const success = await window.farmingSystem.updateAttempts(
-                        window.farmingSystem.slimeNinjaAttempts - 1
+                        userData.slimeNinjaAttempts - 1
                     );
                     
                     if (success) {
+                        // Сохраняем текущее количество попыток в localStorage перед переходом
+                        localStorage.setItem('currentAttempts', userData.slimeNinjaAttempts - 1);
                         window.location.href = 'cutterindex.html';
                     } else {
                         showToast('Ошибка обновления попыток. Попробуйте снова.');
                     }
-                } else {
-                    showToast('Недостаточно попыток! Вернитесь завтра или заработайте больше.');
+                } catch (error) {
+                    console.error('Error checking attempts:', error);
+                    showToast('Ошибка проверки попыток. Попробуйте снова.');
                 }
                 return;
             }
