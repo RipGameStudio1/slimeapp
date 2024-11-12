@@ -214,7 +214,7 @@ class DailyRewardSystem {
                 document.body.style.overflow = 'hidden';
                 
                 this.initAnimations();
-                this.createParticles();
+                this.createStarRain();
             }
         } catch (error) {
             console.error('Error checking daily reward:', error);
@@ -245,6 +245,8 @@ class DailyRewardSystem {
             
             showToast(`Получено: ${result.limeReward} $lime и ${result.attemptsReward} попыток!`);
             
+            this.createStarRain();
+            
             this.modal.style.animation = 'modalClose 0.5s ease forwards';
             
             setTimeout(() => {
@@ -264,23 +266,54 @@ class DailyRewardSystem {
         }
     }
 
-    createParticles() {
-        const particles = document.createElement('div');
-        particles.className = 'reward-particles';
-        this.modal.appendChild(particles);
+    createStarRain() {
+        const starRain = document.createElement('div');
+        starRain.className = 'star-rain';
+        this.modal.appendChild(starRain);
         
         for (let i = 0; i < 50; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.setProperty('--x', `${Math.random() * 200 - 100}px`);
-            particle.style.left = `${Math.random() * 100}%`;
-            particle.style.animationDelay = `${Math.random() * 2}s`;
-            particles.appendChild(particle);
+            setTimeout(() => {
+                this.createStar(starRain);
+            }, i * 100);
         }
 
         setTimeout(() => {
-            particles.remove();
-        }, 3000);
+            starRain.remove();
+        }, 8000);
+    }
+
+    createStar(container) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        
+        const startPos = Math.random() * 100;
+        star.style.left = `${startPos}%`;
+        
+        const duration = 3 + Math.random() * 4;
+        star.style.animation = `starFall ${duration}s linear infinite`;
+        
+        const size = 10 + Math.random() * 10;
+        star.style.fontSize = `${size}px`;
+        
+        const colors = [
+            '#FFD700', // Gold
+            '#FFA500', // Orange
+            '#FF8C00', // Dark Orange
+            '#FFB6C1', // Light Pink
+            '#FF69B4'  // Hot Pink
+        ];
+        star.style.color = colors[Math.floor(Math.random() * colors.length)];
+        
+        const rotation = Math.random() * 360;
+        star.style.transform = `rotate(${rotation}deg)`;
+        
+        star.style.setProperty('--twinkle-delay', `${Math.random() * 2}s`);
+
+        container.appendChild(star);
+
+        setTimeout(() => {
+            star.remove();
+        }, duration * 1000);
     }
 
     animateRewardClaim(limeAmount, attempts) {
@@ -791,19 +824,35 @@ class FarmingSystem {
                 e.preventDefault();
                 const section = this.dataset.section;
                 
-                document.querySelector('.main-content').style.display = 'none';
-                document.querySelector('.play-section').style.display = 'none';
-                document.querySelector('.referrals-section').style.display = 'none';
+                // Добавляем класс hidden ко всем секциям
+                document.querySelector('.main-content').classList.add('hidden');
+                document.querySelector('.play-section').classList.add('hidden');
+                document.querySelector('.referrals-section').classList.add('hidden');
                 
-                if (section === 'main') {
-                    document.querySelector('.main-content').style.display = 'block';
-                } else if (section === 'play') {
-                    document.querySelector('.play-section').style.display = 'block';
-                } else if (section === 'referrals') {
-                    document.querySelector('.referrals-section').style.display = 'block';
-                    this.loadReferralData();
-                }
+                // Удаляем display: none
+                document.querySelector('.main-content').style.display = '';
+                document.querySelector('.play-section').style.display = '';
+                document.querySelector('.referrals-section').style.display = '';
                 
+                // Небольшая задержка перед показом новой секции
+                setTimeout(() => {
+                    if (section === 'main') {
+                        document.querySelector('.main-content').classList.remove('hidden');
+                        document.querySelector('.play-section').style.display = 'none';
+                        document.querySelector('.referrals-section').style.display = 'none';
+                    } else if (section === 'play') {
+                        document.querySelector('.play-section').classList.remove('hidden');
+                        document.querySelector('.main-content').style.display = 'none';
+                        document.querySelector('.referrals-section').style.display = 'none';
+                    } else if (section === 'referrals') {
+                        document.querySelector('.referrals-section').classList.remove('hidden');
+                        document.querySelector('.main-content').style.display = 'none';
+                        document.querySelector('.play-section').style.display = 'none';
+                        window.farmingSystem.loadReferralData();
+                    }
+                }, 50);
+                
+                // Обновляем активную навигацию
                 document.querySelectorAll('.nav-item').forEach(nav => {
                     nav.classList.remove('active');
                 });
