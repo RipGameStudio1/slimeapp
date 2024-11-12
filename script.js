@@ -405,7 +405,7 @@ class FarmingSystem {
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
             this.referralCode = userData.referralCode;
-            this.slimeNinjaAttempts = userData.slimeNinjaAttempts || 5;
+            this.slimeNinjaAttempts = userData.slimeNinjaAttempts || 0;
     
             if (userData.startTime && this.isActive) {
                 this.startTime = new Date(userData.startTime).getTime();
@@ -458,6 +458,18 @@ class FarmingSystem {
         const attemptsElement = document.querySelector('.attempts-count');
         if (attemptsElement) {
             attemptsElement.textContent = this.slimeNinjaAttempts;
+            
+            // Добавляем визуальную индикацию, если попыток нет
+            const playButton = document.querySelector('.game-card[data-game="slime-ninja"] .play-btn');
+            if (playButton) {
+                if (this.slimeNinjaAttempts <= 0) {
+                    playButton.classList.add('disabled');
+                    playButton.textContent = 'Нет попыток';
+                } else {
+                    playButton.classList.remove('disabled');
+                    playButton.textContent = 'Play Now';
+                }
+            }
         }
     }
     async updateAttempts(newAmount) {
