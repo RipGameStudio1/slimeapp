@@ -460,7 +460,30 @@ class FarmingSystem {
             attemptsElement.textContent = this.slimeNinjaAttempts;
         }
     }
-
+    async updateAttempts(newAmount) {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${this.userId}/update-attempts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    attempts: newAmount
+                })
+            });
+    
+            if (!response.ok) throw new Error('Failed to update attempts');
+            
+            const result = await response.json();
+            this.slimeNinjaAttempts = result.attempts;
+            this.updateSlimeNinjaAttempts();
+            
+            return true;
+        } catch (error) {
+            console.error('Error updating attempts:', error);
+            return false;
+        }
+    }
     async syncWithServer() {
         try {
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
@@ -796,7 +819,7 @@ class FarmingSystem {
                     startTime: this.startTime ? new Date(this.startTime) : null,
                     level: this.levelSystem.level,
                     xp: this.levelSystem.xp,
-                    slimeNinjaAttempts: this.slimeNinjaAttempts,
+                    slimeNinjaAttempts: this.slimeNinjaAttempts, // Убедимся, что это поле всегда отправляется
                     achievements: Object.keys(this.achievementSystem.achievements).reduce((acc, key) => {
                         acc[key] = this.achievementSystem.achievements[key].completed;
                         return acc;
@@ -807,6 +830,11 @@ class FarmingSystem {
             if (!response.ok) {
                 throw new Error('Failed to save user data');
             }
+    
+            const data = await response.json();
+            // Обновляем локальное значение попыток из ответа сервера
+            this.slimeNinjaAttempts = data.slimeNinjaAttempts;
+            this.updateSlimeNinjaAttempts();
         } catch (error) {
             console.error('Error saving user data:', error);
         }
@@ -1088,18 +1116,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Обработчики для кнопок игр
     document.querySelectorAll('.play-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', async function(e) {
             e.preventDefault();
             const gameCard = this.closest('.game-card');
             const gameTitle = gameCard.querySelector('.game-title').textContent;
             
-            // Если это SLIME NINJA
             if (gameTitle === 'SLIME NINJA') {
                 if (window.farmingSystem.slimeNinjaAttempts > 0) {
-                    window.farmingSystem.slimeNinjaAttempts--;
-                    window.farmingSystem.updateSlimeNinjaAttempts();
-                    window.farmingSystem.saveUserData();
-                    window.location.href = 'cutterindex.html';
+                    const success = await window.farmingSystem.updateAttempts(
+                        window.farmingSystem.slimeNinjaAttempts - 1
+                    );
+                    
+                    if (success) {
+                        window.location.href = 'cutterindex.html';
+                    } else {
+                        showToast('Ошибка обновления попыток. Попробуйте снова.');
+                    }
                 } else {
                     showToast('Недостаточно попыток! Вернитесь завтра или заработайте больше.');
                 }
