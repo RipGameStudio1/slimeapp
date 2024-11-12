@@ -903,7 +903,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initUserData();
     initThemeToggle();
     window.farmingSystem = new FarmingSystem();
-    window.farmingSystem.initReferralSystem();
     initBackgroundEffect();
 
     // Инициализация игровых карточек
