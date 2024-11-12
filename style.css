@@ -1223,3 +1223,171 @@ body {
     margin-top: 10px;
     font-style: italic;
 }
+
+.daily-reward-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--background-color);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.daily-reward-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+}
+
+.streak-counter {
+    transform: scale(0.5);
+    opacity: 0;
+    transition: all 0.5s ease;
+}
+
+.streak-description,
+.rewards-container,
+.claim-reward-btn {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.day-number {
+    font-size: 120px;
+    font-weight: bold;
+    color: var(--accent-color);
+    display: block;
+    line-height: 1;
+    text-shadow: 0 0 10px rgba(var(--accent-color-rgb), 0.3);
+}
+
+.day-text {
+    font-size: 32px;
+    color: var(--text-color);
+    text-transform: uppercase;
+    margin-top: 10px;
+}
+
+.streak-description {
+    font-size: 24px;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.rewards-container {
+    background: rgba(var(--primary-color-rgb), 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    width: 80%;
+    max-width: 400px;
+    backdrop-filter: blur(10px);
+}
+
+.reward-item {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+}
+
+.reward-value {
+    font-size: 28px;
+    color: var(--text-color);
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.reward-value i {
+    font-size: 24px;
+    color: var(--accent-color);
+}
+
+.claim-reward-btn {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 20px 40px;
+    border-radius: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(var(--accent-color-rgb), 0.3);
+}
+
+.claim-reward-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--accent-color-rgb), 0.4);
+}
+
+.claim-reward-btn:active {
+    transform: translateY(1px);
+}
+
+/* Добавим анимацию для иконок наград */
+@keyframes rewardIconPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.reward-value i {
+    animation: rewardIconPulse 2s infinite;
+}
+
+.reward-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.particle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    animation: particleFloat 3s infinite;
+    opacity: 0.6;
+}
+
+@keyframes particleFloat {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(-100vh) translateX(var(--x)) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Добавим стили для темной темы */
+[data-theme="dark"] .daily-reward-modal {
+    background: var(--background-color);
+}
+
+[data-theme="dark"] .rewards-container {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .particle {
+    background: var(--primary-color);
+}
