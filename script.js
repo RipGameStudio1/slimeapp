@@ -179,6 +179,93 @@ class AchievementSystem {
         });
     }
 }
+class DailyRewardSystem {
+    constructor() {
+        this.modal = document.querySelector('.daily-reward-modal');
+        this.dayNumber = this.modal.querySelector('.day-number');
+        this.limeReward = this.modal.querySelector('.lime-reward');
+        this.attemptsReward = this.modal.querySelector('.attempts-reward');
+        this.claimButton = this.modal.querySelector('.claim-reward-btn');
+        
+        this.claimButton.addEventListener('click', () => this.claimReward());
+    }
+
+    async checkDailyReward() {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}`);
+            const userData = await response.json();
+            
+            const lastReward = userData.lastDailyReward ? new Date(userData.lastDailyReward) : null;
+            const now = new Date();
+            
+            if (!lastReward || 
+                now.getDate() !== lastReward.getDate() || 
+                now.getMonth() !== lastReward.getMonth() || 
+                now.getFullYear() !== lastReward.getFullYear()) {
+                
+                const streak = (userData.dailyRewardStreak || 0) + 1;
+                if (streak > 7) streak = 7;
+                
+                this.dayNumber.textContent = streak;
+                this.limeReward.textContent = streak * 10;
+                this.attemptsReward.textContent = streak;
+                
+                this.modal.style.display = 'flex';
+            }
+        } catch (error) {
+            console.error('Error checking daily reward:', error);
+        }
+    }
+
+    async claimReward() {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}/daily-reward`, {
+                method: 'POST'
+            });
+            
+            if (!response.ok) throw new Error('Failed to claim reward');
+            
+            const result = await response.json();
+            
+            // Обновляем данные пользователя
+            window.farmingSystem.limeAmount = result.totalLime;
+            window.farmingSystem.updateLimeDisplay();
+            
+            // Показываем уведомление
+            showToast(`Получено: ${result.limeReward} $lime и ${result.attemptsReward} попыток!`);
+            
+            // Закрываем модальное окно
+            this.modal.style.display = 'none';
+            
+            // Добавляем анимацию получения награды
+            this.animateRewardClaim(result.limeReward, result.attemptsReward);
+        } catch (error) {
+            console.error('Error claiming reward:', error);
+            showToast('Failed to claim reward. Please try again.');
+        }
+    }
+
+    animateRewardClaim(limeAmount, attempts) {
+        // Анимация для lime
+        const limeText = document.createElement('div');
+        limeText.className = 'floating-reward';
+        limeText.textContent = `+${limeAmount} $lime`;
+        document.body.appendChild(limeText);
+
+        // Анимация для попыток
+        const attemptsText = document.createElement('div');
+        attemptsText.className = 'floating-reward';
+        attemptsText.textContent = `+${attempts} attempts`;
+        document.body.appendChild(attemptsText);
+
+        // Удаляем элементы после анимации
+        setTimeout(() => {
+            limeText.remove();
+            attemptsText.remove();
+        }, 2000);
+    }
+}
+
 
 class FarmingSystem {
     constructor() {
@@ -196,6 +283,8 @@ class FarmingSystem {
         this.saveInterval = null;
         this.farmingTimeout = null;
         this.referralCode = null;
+        this.slimeNinjaAttempts = 5; // Начальное количество попыток
+        this.dailyRewardSystem = new DailyRewardSystem();
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
@@ -225,6 +314,8 @@ class FarmingSystem {
             this.levelSystem.level = userData.level || 1;
             this.levelSystem.xp = userData.xp || 0;
             this.referralCode = userData.referralCode;
+            this.slimeNinjaAttempts = userData.slimeNinjaAttempts || 5;
+            this.dailyRewardSystem.checkDailyReward();
     
             if (userData.startTime && this.isActive) {
                 this.startTime = new Date(userData.startTime).getTime();
