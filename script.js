@@ -1065,12 +1065,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const gameCard = this.closest('.game-card');
             const gameTitle = gameCard.querySelector('.game-title').textContent;
             
-            // Если это SLIME NINJA
             if (gameTitle === 'SLIME NINJA') {
-                window.location.href = 'cutterindex.html';
+                if (window.farmingSystem.slimeNinjaAttempts > 0) {
+                    window.farmingSystem.slimeNinjaAttempts--;
+                    updateSlimeNinjaAttempts();
+                    window.location.href = 'cutterindex.html';
+                } else {
+                    showToast('Недостаточно попыток! Вернитесь завтра или заработайте больше.');
+                }
                 return;
             }
-            
             showToast(`Starting ${gameTitle}...`);
             this.classList.add('disabled');
             setTimeout(() => {
