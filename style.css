@@ -227,6 +227,7 @@ body {
     justify-content: center;
     gap: 10px;
     overflow: hidden;
+    z-index: 100;
 }
 
 .farming-progress {
@@ -394,6 +395,7 @@ body {
     justify-content: space-around;
     gap: 10px;
     height: 65px;
+    z-index: 100;
 }
 
 .nav-item {
