@@ -32,7 +32,7 @@ function initThemeToggle() {
         icon.classList.remove('fa-moon');
         icon.classList.add('fa-sun');
         isDark = true;
-        window.isDarkTheme = true; // Добавьте эту строку
+        window.isDarkTheme = true;
     }
 
     themeToggle.addEventListener('click', function() {
@@ -42,7 +42,7 @@ function initThemeToggle() {
         icon.style.animation = 'themeToggleRotate 0.5s ease';
 
         isDark = !isDark;
-        window.isDarkTheme = isDark; // Добавьте эту строку
+        window.isDarkTheme = isDark;
         
         if (isDark) {
             document.body.setAttribute('data-theme', 'dark');
@@ -112,7 +112,6 @@ class LevelSystem {
         this.progressElement.style.width = `${progress}%`;
     }
 }
-
 class AchievementSystem {
     constructor() {
         this.achievements = {
@@ -179,6 +178,7 @@ class AchievementSystem {
         });
     }
 }
+
 class DailyRewardSystem {
     constructor() {
         this.modal = document.querySelector('.daily-reward-modal');
@@ -213,53 +213,11 @@ class DailyRewardSystem {
                 this.modal.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
                 
-                // Запускаем анимации
                 this.initAnimations();
-                
-                // Добавляем эффект частиц
                 this.createParticles();
             }
         } catch (error) {
             console.error('Error checking daily reward:', error);
-        }
-    }
-
-    async updateUIAfterReward(result) {
-        // Обновляем значения
-        window.farmingSystem.limeAmount = result.totalLime;
-        window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
-        
-        // Анимируем изменения
-        const limeElement = document.querySelector('.lime-amount');
-        const attemptsElement = document.querySelector('.attempts-count');
-        
-        if (limeElement) {
-            const oldValue = parseFloat(limeElement.textContent);
-            const newValue = result.totalLime;
-            
-            // Анимация изменения числа
-            const steps = 20;
-            const increment = (newValue - oldValue) / steps;
-            let current = oldValue;
-            
-            const updateNumber = () => {
-                current += increment;
-                limeElement.textContent = current.toFixed(5);
-                
-                if (increment > 0 ? current < newValue : current > newValue) {
-                    requestAnimationFrame(updateNumber);
-                } else {
-                    limeElement.textContent = newValue.toFixed(5);
-                }
-            };
-            
-            requestAnimationFrame(updateNumber);
-        }
-        
-        if (attemptsElement) {
-            attemptsElement.textContent = result.totalAttempts;
-            attemptsElement.classList.add('updated');
-            setTimeout(() => attemptsElement.classList.remove('updated'), 1000);
         }
     }
 
@@ -276,18 +234,17 @@ class DailyRewardSystem {
             
             const result = await response.json();
             
-            // Создаем эффект вспышки
             const flash = document.createElement('div');
             flash.className = 'reward-flash';
             this.modal.appendChild(flash);
             
-            // Анимируем получение награды
-            await this.updateUIAfterReward(result);
+            window.farmingSystem.limeAmount = result.totalLime;
+            window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
+            window.farmingSystem.updateLimeDisplay();
+            window.farmingSystem.updateSlimeNinjaAttempts();
             
-            // Показываем уведомление
             showToast(`Получено: ${result.limeReward} $lime и ${result.attemptsReward} попыток!`);
             
-            // Закрываем модальное окно с анимацией
             this.modal.style.animation = 'modalClose 0.5s ease forwards';
             
             setTimeout(() => {
@@ -296,6 +253,8 @@ class DailyRewardSystem {
                 document.body.style.overflow = 'auto';
                 flash.remove();
             }, 500);
+            
+            this.animateRewardClaim(result.limeReward, result.attemptsReward);
             
         } catch (error) {
             console.error('Error claiming reward:', error);
@@ -319,26 +278,22 @@ class DailyRewardSystem {
             particles.appendChild(particle);
         }
 
-        // Удаляем частицы после завершения анимации
         setTimeout(() => {
             particles.remove();
         }, 3000);
     }
 
     animateRewardClaim(limeAmount, attempts) {
-        // Анимация для lime
         const limeText = document.createElement('div');
         limeText.className = 'floating-reward';
         limeText.textContent = `+${limeAmount} $lime`;
         document.body.appendChild(limeText);
 
-        // Анимация для попыток
         const attemptsText = document.createElement('div');
         attemptsText.className = 'floating-reward';
         attemptsText.textContent = `+${attempts} attempts`;
         document.body.appendChild(attemptsText);
 
-        // Удаляем элементы после анимации
         setTimeout(() => {
             limeText.remove();
             attemptsText.remove();
@@ -370,45 +325,6 @@ class DailyRewardSystem {
     }
 }
 
-async updateUIAfterReward(result) {
-    // Обновляем значения
-    window.farmingSystem.limeAmount = result.totalLime;
-    window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
-    
-    // Анимируем изменения
-    const limeElement = document.querySelector('.lime-amount');
-    const attemptsElement = document.querySelector('.attempts-count');
-    
-    if (limeElement) {
-        const oldValue = parseFloat(limeElement.textContent);
-        const newValue = result.totalLime;
-        
-        // Анимация изменения числа
-        const steps = 20;
-        const increment = (newValue - oldValue) / steps;
-        let current = oldValue;
-        
-        const updateNumber = () => {
-            current += increment;
-            limeElement.textContent = current.toFixed(5);
-            
-            if (increment > 0 ? current < newValue : current > newValue) {
-                requestAnimationFrame(updateNumber);
-            } else {
-                limeElement.textContent = newValue.toFixed(5);
-            }
-        };
-        
-        requestAnimationFrame(updateNumber);
-    }
-    
-    if (attemptsElement) {
-        attemptsElement.textContent = result.totalAttempts;
-        attemptsElement.classList.add('updated');
-        setTimeout(() => attemptsElement.classList.remove('updated'), 1000);
-    }
-}
-
 class FarmingSystem {
     constructor() {
         this.button = document.querySelector('.farming-button');
@@ -425,21 +341,15 @@ class FarmingSystem {
         this.saveInterval = null;
         this.farmingTimeout = null;
         this.referralCode = null;
-        this.slimeNinjaAttempts = 5; // Начальное количество попыток
-        this.dailyRewardSystem = new DailyRewardSystem();
-        this.updateSlimeNinjaAttempts();
+        this.slimeNinjaAttempts = 5;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
+        this.dailyRewardSystem = new DailyRewardSystem();
         
         this.initUser();
     }
-    updateSlimeNinjaAttempts() {
-        const attemptsElement = document.querySelector('.game-card[data-game="slime-ninja"] .attempts-count');
-        if (attemptsElement) {
-            attemptsElement.textContent = this.slimeNinjaAttempts;
-        }
-    }
+
     async initUser() {
         const tg = window.Telegram.WebApp;
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -463,8 +373,6 @@ class FarmingSystem {
             this.levelSystem.xp = userData.xp || 0;
             this.referralCode = userData.referralCode;
             this.slimeNinjaAttempts = userData.slimeNinjaAttempts || 5;
-            this.dailyRewardSystem.checkDailyReward();
-            this.updateSlimeNinjaAttempts();
     
             if (userData.startTime && this.isActive) {
                 this.startTime = new Date(userData.startTime).getTime();
@@ -499,6 +407,10 @@ class FarmingSystem {
             this.levelSystem.updateDisplay();
             this.achievementSystem.updateDisplay();
             this.initReferralSystem();
+            this.updateSlimeNinjaAttempts();
+            
+            // Проверяем ежедневную награду
+            this.dailyRewardSystem.checkDailyReward();
             
             this.init();
         } catch (error) {
@@ -508,6 +420,14 @@ class FarmingSystem {
             hideLoadingIndicator();
         }
     }
+
+    updateSlimeNinjaAttempts() {
+        const attemptsElement = document.querySelector('.attempts-count');
+        if (attemptsElement) {
+            attemptsElement.textContent = this.slimeNinjaAttempts;
+        }
+    }
+
     async syncWithServer() {
         try {
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
@@ -515,25 +435,21 @@ class FarmingSystem {
             
             const serverData = await response.json();
             
-            // Если на сервере фарминг неактивен, но у нас активен
             if (!serverData.isActive && this.isActive) {
                 await this.completeFarming();
                 return;
             }
             
-            // Если на сервере активный фарминг
             if (serverData.isActive && serverData.startTime) {
                 const serverStartTime = new Date(serverData.startTime).getTime();
                 const now = Date.now();
                 const elapsedTime = now - serverStartTime;
                 
-                // Если время фарминга истекло
                 if (elapsedTime >= this.farmingDuration) {
                     await this.completeFarming();
                     return;
                 }
                 
-                // Если на текущем клиенте другое время старта или неактивный фарминг
                 if (!this.isActive || this.startTime !== serverStartTime) {
                     this.startTime = serverStartTime;
                     this.isActive = true;
@@ -542,18 +458,18 @@ class FarmingSystem {
                 }
             }
             
-            // Синхронизация баланса только если фарминг неактивен
             if (!this.isActive) {
                 this.limeAmount = parseFloat(serverData.limeAmount);
                 this.baseAmount = this.limeAmount;
                 this.updateLimeDisplay();
             }
             
-            // Остальная синхронизация
             this.farmingCount = serverData.farmingCount;
             this.levelSystem.level = serverData.level;
             this.levelSystem.xp = serverData.xp;
             this.levelSystem.updateDisplay();
+            this.slimeNinjaAttempts = serverData.slimeNinjaAttempts;
+            this.updateSlimeNinjaAttempts();
             
             Object.keys(serverData.achievements || {}).forEach(key => {
                 if (this.achievementSystem.achievements[key]) {
@@ -568,7 +484,7 @@ class FarmingSystem {
     }
     async loadReferralData() {
         try {
-            console.log('Loading referral data...'); // Отладочный лог
+            console.log('Loading referral data...');
             const response = await fetch(`${API_URL}/api/users/${this.userId}/referrals`);
             
             if (!response.ok) {
@@ -577,7 +493,7 @@ class FarmingSystem {
             }
             
             const data = await response.json();
-            console.log('Received referral data:', data); // Отладочный лог
+            console.log('Received referral data:', data);
             
             if (!data.referralCode) {
                 console.error('No referral code in response');
@@ -588,15 +504,13 @@ class FarmingSystem {
             this.updateReferralUI(data);
         } catch (error) {
             console.error('Error loading referral data:', error);
-            // Показываем более информативное сообщение об ошибке
             showToast(`Failed to load referral data: ${error.message}`);
         }
     }
     
     updateReferralUI(data) {
-        console.log('Updating referral UI with data:', data); // Отладочный лог
+        console.log('Updating referral UI with data:', data);
     
-        // Обновляем статистику
         const countElement = document.getElementById('referral-count');
         const earningsElement = document.getElementById('referral-earnings');
         const referralLink = document.getElementById('referral-link');
@@ -604,10 +518,9 @@ class FarmingSystem {
         if (countElement) countElement.textContent = data.referralCount || 0;
         if (earningsElement) earningsElement.textContent = (data.totalEarnings || 0).toFixed(5);
     
-        // Обновляем реферальную ссылку
         if (referralLink) {
             if (data.referralCode) {
-                const botUsername = 'LimeSlimeBot'; // Убедитесь, что это правильное имя бота
+                const botUsername = 'LimeSlimeBot';
                 referralLink.value = `https://t.me/${botUsername}?start=${data.referralCode}`;
             } else {
                 referralLink.value = 'Loading...';
@@ -616,10 +529,9 @@ class FarmingSystem {
             console.error('Referral link element not found');
         }
     
-        // Обновляем список рефералов
         const referralListBody = document.getElementById('referral-list-body');
         if (referralListBody) {
-            referralListBody.innerHTML = ''; // Очищаем текущий список
+            referralListBody.innerHTML = '';
     
             if (data.referrals && data.referrals.length > 0) {
                 data.referrals.forEach(referral => {
@@ -651,7 +563,7 @@ class FarmingSystem {
     }
     
     initReferralSystem() {
-        console.log('Initializing referral system...'); // Отладочный лог
+        console.log('Initializing referral system...');
         
         const copyButton = document.getElementById('copy-link');
         const referralLink = document.getElementById('referral-link');
@@ -661,7 +573,6 @@ class FarmingSystem {
             return;
         }
     
-        // Начальная загрузка данных
         this.loadReferralData();
     
         copyButton.addEventListener('click', () => {
@@ -675,12 +586,10 @@ class FarmingSystem {
             }
         });
     
-        // Периодическое обновление данных
         setInterval(() => this.loadReferralData(), 30000);
     }
 
     resumeFarming(elapsedTime) {
-        // Очищаем существующие интервалы
         if (this.farmingInterval) {
             clearInterval(this.farmingInterval);
             this.farmingInterval = null;
@@ -694,7 +603,6 @@ class FarmingSystem {
             this.farmingTimeout = null;
         }
 
-        // Если прошло больше времени чем длительность фарминга, сразу завершаем
         if (elapsedTime >= this.farmingDuration) {
             this.completeFarming();
             return;
@@ -714,14 +622,12 @@ class FarmingSystem {
         const progress = (elapsedTime / this.farmingDuration) * 100;
         progressBar.style.width = `${progress}%`;
 
-        // Вычисляем оставшееся время
         const remainingTime = this.farmingDuration - elapsedTime;
         
-        // Устанавливаем таймер на точное время завершения
         this.farmingTimeout = setTimeout(() => {
             this.completeFarming();
         }, remainingTime);
-        // Интервал только для обновления UI
+
         this.farmingInterval = setInterval(() => {
             const now = Date.now();
             const currentElapsed = now - this.startTime;
@@ -745,14 +651,12 @@ class FarmingSystem {
             this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
         }, 50);
 
-        // Сохраняем данные реже
         this.saveInterval = setInterval(() => {
             if (this.isActive) {
                 this.saveUserData(this.limeAmount);
             }
         }, 5000);
     }
-
     startFarming() {
         this.isActive = true;
         this.farmingCount++;
@@ -764,13 +668,10 @@ class FarmingSystem {
     }
 
     async completeFarming() {
-        // Проверяем, не был ли уже завершен фарминг
         if (!this.isActive) return;
 
-        // Сразу устанавливаем флаг неактивности
         this.isActive = false;
 
-        // Очищаем все таймеры и интервалы
         if (this.farmingInterval) {
             clearInterval(this.farmingInterval);
             this.farmingInterval = null;
@@ -799,7 +700,6 @@ class FarmingSystem {
         }
 
         try {
-            // Отправляем финальное состояние на сервер и ждем подтверждения
             const response = await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
                 method: 'POST',
                 headers: {
@@ -818,7 +718,6 @@ class FarmingSystem {
             showToast('Farming completed!');
         } catch (error) {
             console.error('Error completing farming:', error);
-            // В случае ошибки пытаемся сохранить обычным способом
             await this.saveUserData(this.limeAmount);
         }
     }
@@ -834,10 +733,9 @@ class FarmingSystem {
         
         if (limeAmountElement.textContent !== formattedNumber) {
             limeAmountElement.classList.remove('number-change');
-            void limeAmountElement.offsetWidth; // Trigger reflow
+            void limeAmountElement.offsetWidth;
             limeAmountElement.classList.add('number-change');
             
-            // Добавляем эффект обновления для stat-value
             const statValues = document.querySelectorAll('.stat-value');
             statValues.forEach(stat => {
                 stat.classList.remove('updating');
@@ -865,6 +763,7 @@ class FarmingSystem {
                     startTime: this.startTime ? new Date(this.startTime) : null,
                     level: this.levelSystem.level,
                     xp: this.levelSystem.xp,
+                    slimeNinjaAttempts: this.slimeNinjaAttempts,
                     achievements: Object.keys(this.achievementSystem.achievements).reduce((acc, key) => {
                         acc[key] = this.achievementSystem.achievements[key].completed;
                         return acc;
@@ -885,28 +784,26 @@ class FarmingSystem {
             if (!this.isActive) {
                 this.startFarming();
             }
-        });   
+        });
+
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
                 const section = this.dataset.section;
                 
-                // Скрываем все секции
                 document.querySelector('.main-content').style.display = 'none';
                 document.querySelector('.play-section').style.display = 'none';
                 document.querySelector('.referrals-section').style.display = 'none';
                 
-                // Показываем нужную секцию
                 if (section === 'main') {
                     document.querySelector('.main-content').style.display = 'block';
                 } else if (section === 'play') {
                     document.querySelector('.play-section').style.display = 'block';
                 } else if (section === 'referrals') {
                     document.querySelector('.referrals-section').style.display = 'block';
-                    window.farmingSystem.loadReferralData(); // Обновляем данные при переключении на вкладку
+                    this.loadReferralData();
                 }
                 
-                // Обновляем активную навигацию
                 document.querySelectorAll('.nav-item').forEach(nav => {
                     nav.classList.remove('active');
                 });
@@ -914,23 +811,20 @@ class FarmingSystem {
             });
         });
     
-        // Инициализация карточек игр
         document.querySelectorAll('.game-card').forEach((card, index) => {
             card.style.setProperty('--card-index', index);
         });
-        // Периодическая синхронизация каждые 10 секунд
+
         setInterval(() => {
             this.syncWithServer();
         }, 10000);
 
-        // Синхронизация при возвращении вкладки в активное состояние
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 this.syncWithServer();
             }
         });
 
-        // Синхронизация при восстановлении подключения к интернету
         window.addEventListener('online', () => {
             this.syncWithServer();
         });
@@ -944,7 +838,6 @@ class FarmingSystem {
         }, 1000);
     }
 }
-
 function showToast(message) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -974,7 +867,6 @@ function createRipple(event) {
     });
 }
 
-//обработчики для всех кнопок
 document.querySelectorAll('.play-btn, .farming-button').forEach(button => {
     button.addEventListener('click', createRipple);
 });
@@ -1030,12 +922,12 @@ function initBackgroundEffect() {
                 field += getBlobField(uv, blobs[i], 0.065);
             }
     
-            vec3 blobColor = vec3(0.796, 0.910, 0.588); // Базовый цвет
+            vec3 blobColor = vec3(0.796, 0.910, 0.588);
             
             if (isDark) {
-                blobColor *= 0.5; // Темнее для тёмной темы
+                blobColor *= 0.5;
             } else {
-                blobColor *= 0.5; // Темнее для светлой темы (было 1.0)
+                blobColor *= 0.5;
             }
             
             float alpha = smoothstep(1.0, 1.0, field) * 0.5;
@@ -1145,68 +1037,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.farmingSystem = new FarmingSystem();
     initBackgroundEffect();
 
-    // Инициализация игровых карточек
-    const playSection = document.createElement('div');
-    playSection.className = 'play-section';
-    playSection.style.display = 'none';
-    
-    playSection.innerHTML = `
-        <div class="games-container">
-            <div class="game-card">
-                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Dice Game">
-                <div class="game-overlay">
-                    <div class="game-status new">New</div>
-                    <div class="game-title">Dice Game</div>
-                    <div class="game-stats">
-                        <div class="stat">
-                            <span>🎲 Multiplier x2</span>
-                        </div>
-                        <div class="stat">
-                            <span>Attempts: <span class="attempts-count">5</span></span>
-                        </div>
-                    </div>
-                    <button class="play-btn">Play Now</button>
-                </div>
-            </div>
-
-            <div class="game-card">
-                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Coin Flip">
-                <div class="game-overlay">
-                    <div class="game-status popular">Popular</div>
-                    <div class="game-title">Coin Flip</div>
-                    <div class="game-stats">
-                        <div class="stat">
-                            <span>🎯 50/50</span>
-                        </div>
-                        <div class="stat">
-                            <span>💰 Min Bet: 5</span>
-                        </div>
-                    </div>
-                    <button class="play-btn">Play Now</button>
-                </div>
-            </div>
-
-            <div class="game-card">
-                <img src="https://via.placeholder.com/400x225" class="game-image" alt="Slots">
-                <div class="game-overlay">
-                    <div class="game-status premium">Premium</div>
-                    <div class="game-title">Slots</div>
-                    <div class="game-stats">
-                        <div class="stat">
-                            <span>🎰 Jackpot</span>
-                        </div>
-                        <div class="stat">
-                            <span>💰 Min Bet: 20</span>
-                        </div>
-                    </div>
-                    <button class="play-btn premium-btn">Play Now</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.querySelector('.container').appendChild(playSection);
-
     // Обработчики для кнопок игр
     document.querySelectorAll('.play-btn').forEach(button => {
         button.addEventListener('click', function(e) {
@@ -1214,16 +1044,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const gameCard = this.closest('.game-card');
             const gameTitle = gameCard.querySelector('.game-title').textContent;
             
+            // Если это SLIME NINJA
             if (gameTitle === 'SLIME NINJA') {
                 if (window.farmingSystem.slimeNinjaAttempts > 0) {
                     window.farmingSystem.slimeNinjaAttempts--;
-                    updateSlimeNinjaAttempts();
+                    window.farmingSystem.updateSlimeNinjaAttempts();
+                    window.farmingSystem.saveUserData();
                     window.location.href = 'cutterindex.html';
                 } else {
                     showToast('Недостаточно попыток! Вернитесь завтра или заработайте больше.');
                 }
                 return;
             }
+            
             showToast(`Starting ${gameTitle}...`);
             this.classList.add('disabled');
             setTimeout(() => {
