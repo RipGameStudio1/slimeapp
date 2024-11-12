@@ -223,48 +223,44 @@ class DailyRewardSystem {
             console.error('Error checking daily reward:', error);
         }
     }
-    // Добавим метод инициализации анимаций
-    initAnimations() {
-        this.modal.querySelector('.streak-counter').style.opacity = '0';
-        this.modal.querySelector('.streak-description').style.opacity = '0';
-        this.modal.querySelector('.rewards-container').style.opacity = '0';
-        this.modal.querySelector('.claim-reward-btn').style.opacity = '0';
 
-        setTimeout(() => {
-            this.modal.querySelector('.streak-counter').style.opacity = '1';
-            this.modal.querySelector('.streak-counter').style.transform = 'scale(1)';
-        }, 100);
-
-        setTimeout(() => {
-            this.modal.querySelector('.streak-description').style.opacity = '1';
-        }, 300);
-
-        setTimeout(() => {
-            this.modal.querySelector('.rewards-container').style.opacity = '1';
-        }, 500);
-
-        setTimeout(() => {
-            this.modal.querySelector('.claim-reward-btn').style.opacity = '1';
-        }, 700);
-    }
-    createParticles() {
-        const particles = document.createElement('div');
-        particles.className = 'reward-particles';
-        this.modal.appendChild(particles);
+    async updateUIAfterReward(result) {
+        // Обновляем значения
+        window.farmingSystem.limeAmount = result.totalLime;
+        window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
         
-        for (let i = 0; i < 50; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.setProperty('--x', `${Math.random() * 200 - 100}px`);
-            particle.style.left = `${Math.random() * 100}%`;
-            particle.style.animationDelay = `${Math.random() * 2}s`;
-            particles.appendChild(particle);
+        // Анимируем изменения
+        const limeElement = document.querySelector('.lime-amount');
+        const attemptsElement = document.querySelector('.attempts-count');
+        
+        if (limeElement) {
+            const oldValue = parseFloat(limeElement.textContent);
+            const newValue = result.totalLime;
+            
+            // Анимация изменения числа
+            const steps = 20;
+            const increment = (newValue - oldValue) / steps;
+            let current = oldValue;
+            
+            const updateNumber = () => {
+                current += increment;
+                limeElement.textContent = current.toFixed(5);
+                
+                if (increment > 0 ? current < newValue : current > newValue) {
+                    requestAnimationFrame(updateNumber);
+                } else {
+                    limeElement.textContent = newValue.toFixed(5);
+                }
+            };
+            
+            requestAnimationFrame(updateNumber);
         }
-    
-        // Удаляем частицы после завершения анимации
-        setTimeout(() => {
-            particles.remove();
-        }, 3000);
+        
+        if (attemptsElement) {
+            attemptsElement.textContent = result.totalAttempts;
+            attemptsElement.classList.add('updated');
+            setTimeout(() => attemptsElement.classList.remove('updated'), 1000);
+        }
     }
 
     async claimReward() {
@@ -309,6 +305,26 @@ class DailyRewardSystem {
         }
     }
 
+    createParticles() {
+        const particles = document.createElement('div');
+        particles.className = 'reward-particles';
+        this.modal.appendChild(particles);
+        
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.setProperty('--x', `${Math.random() * 200 - 100}px`);
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.animationDelay = `${Math.random() * 2}s`;
+            particles.appendChild(particle);
+        }
+
+        // Удаляем частицы после завершения анимации
+        setTimeout(() => {
+            particles.remove();
+        }, 3000);
+    }
+
     animateRewardClaim(limeAmount, attempts) {
         // Анимация для lime
         const limeText = document.createElement('div');
@@ -327,6 +343,30 @@ class DailyRewardSystem {
             limeText.remove();
             attemptsText.remove();
         }, 2000);
+    }
+
+    initAnimations() {
+        this.modal.querySelector('.streak-counter').style.opacity = '0';
+        this.modal.querySelector('.streak-description').style.opacity = '0';
+        this.modal.querySelector('.rewards-container').style.opacity = '0';
+        this.modal.querySelector('.claim-reward-btn').style.opacity = '0';
+
+        setTimeout(() => {
+            this.modal.querySelector('.streak-counter').style.opacity = '1';
+            this.modal.querySelector('.streak-counter').style.transform = 'scale(1)';
+        }, 100);
+
+        setTimeout(() => {
+            this.modal.querySelector('.streak-description').style.opacity = '1';
+        }, 300);
+
+        setTimeout(() => {
+            this.modal.querySelector('.rewards-container').style.opacity = '1';
+        }, 500);
+
+        setTimeout(() => {
+            this.modal.querySelector('.claim-reward-btn').style.opacity = '1';
+        }, 700);
     }
 }
 
