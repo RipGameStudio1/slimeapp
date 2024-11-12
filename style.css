@@ -1183,3 +1183,316 @@ input:focus-visible,
     transform: none;
     box-shadow: none;
 }
+
+/* Анимация для farming button */
+@keyframes pulse {
+0% { transform: translateX(-50%) scale(1); }
+50% { transform: translateX(-50%) scale(1.02); }
+100% { transform: translateX(-50%) scale(1); }
+}
+
+/* Анимация для достижений */
+@keyframes achievementShine {
+0% { background-position: -100% 0; }
+100% { background-position: 200% 0; }
+}
+
+/* Анимация для карточек статистики */
+@keyframes floatCard {
+0% { transform: translateY(0); }
+50% { transform: translateY(-5px); }
+100% { transform: translateY(0); }
+}
+
+/* Анимация для иконок */
+@keyframes iconSpin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+/* Применение анимаций */
+.lime-amount.number-change {
+animation: numberPop 0.3s ease;
+}
+
+.farming-button:not(.disabled):hover {
+animation: pulse 1.5s infinite;
+}
+
+.achievement-card.completed {
+background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+background-size: 200% 100%;
+animation: achievementShine 2s infinite linear;
+}
+
+.stat-card:hover {
+animation: floatCard 2s infinite ease-in-out;
+}
+
+.achievement-card i {
+transition: transform 0.3s ease;
+}
+
+.achievement-card:hover i {
+animation: iconSpin 1s ease;
+}
+
+/* Анимация для навигации */
+.nav-item {
+transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.nav-item:hover {
+transform: translateY(-2px);
+}
+
+/* Анимация для кнопок в играх */
+.play-btn {
+transition: transform 0.3s ease, box-shadow 0.3s ease;
+position: relative;
+overflow: hidden;
+}
+
+.play-btn::after {
+content: '';
+position: absolute;
+top: -50%;
+left: -50%;
+width: 200%;
+height: 200%;
+background: rgba(255,255,255,0.1);
+transform: rotate(45deg);
+transition: transform 0.5s ease;
+}
+
+.play-btn:hover::after {
+transform: rotate(45deg) translate(50%, 50%);
+}
+
+/* Анимация для карточек рефералов */
+.referral-row {
+transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.referral-row:hover {
+transform: scale(1.02);
+background: rgba(var(--primary-color-rgb), 0.05);
+}
+
+/* Анимация для копирования реферальной ссылки */
+@keyframes copySuccess {
+0% { transform: scale(1); }
+50% { transform: scale(1.2); }
+100% { transform: scale(1); }
+}
+
+/* Анимация для прогресс-бара уровня */
+@keyframes progressGlow {
+0% { box-shadow: 0 0 5px var(--accent-color); }
+50% { box-shadow: 0 0 15px var(--accent-color); }
+100% { box-shadow: 0 0 5px var(--accent-color); }
+}
+
+/* Анимация для аватара */
+@keyframes avatarPulse {
+0% { transform: scale(1); }
+50% { transform: scale(1.05); }
+100% { transform: scale(1); }
+}
+
+/* Анимация для статуса онлайн */
+@keyframes statusBlink {
+0% { opacity: 0.7; }
+50% { opacity: 1; }
+100% { opacity: 0.7; }
+}
+
+/* Анимация для заголовка */
+@keyframes titleFloat {
+0% { transform: translateY(0); }
+50% { transform: translateY(-5px); }
+100% { transform: translateY(0); }
+}
+
+/* Применение новых анимаций */
+.avatar:hover {
+animation: avatarPulse 1s infinite ease-in-out;
+}
+
+.user-status {
+animation: statusBlink 2s infinite;
+}
+
+.lime-title {
+animation: titleFloat 3s infinite ease-in-out;
+}
+
+.progress-fill {
+animation: progressGlow 2s infinite;
+}
+
+#copy-link:active i {
+animation: copySuccess 0.3s ease;
+}
+
+/* Улучшенные стили для интерактивных элементов */
+.stat-card {
+transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.achievement-card {
+transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.achievement-card:hover {
+transform: translateY(-5px) scale(1.02);
+}
+
+/* Анимация для toast сообщений */
+@keyframes toastSlide {
+0% { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+15% { transform: translateX(-50%) translateY(20px); opacity: 1; }
+85% { transform: translateX(-50%) translateY(20px); opacity: 1; }
+100% { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+}
+
+.toast.show {
+animation: toastSlide 3s ease forwards;
+}
+
+/* Анимация для загрузки секций */
+@keyframes sectionFadeIn {
+from {
+opacity: 0;
+transform: translateY(20px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+.main-content, .play-section, .referrals-section {
+animation: sectionFadeIn 0.5s ease forwards;
+}
+
+/* Анимация для кнопки темы */
+@keyframes themeToggleRotate {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+.theme-toggle:hover i {
+animation: themeToggleRotate 0.5s ease;
+}
+
+/* Анимация для обновления значений */
+@keyframes valueUpdate {
+0% { transform: scale(1); color: var(--accent-color); }
+50% { transform: scale(1.1); }
+100% { transform: scale(1); color: var(--text-color); }
+}
+
+/* Анимация для игровых карточек */
+@keyframes cardHover {
+0% { transform: rotate3d(0, 0, 0, 0deg); }
+100% { transform: rotate3d(var(--rx), var(--ry), 0, var(--r)); }
+}
+
+/* Анимация для кнопки фарминга во время процесса */
+@keyframes farmingProgress {
+0% { background-position: 0% 50%; }
+50% { background-position: 100% 50%; }
+100% { background-position: 0% 50%; }
+}
+
+/* Анимация для иконок навигации */
+@keyframes iconPop {
+0% { transform: scale(1); }
+40% { transform: scale(1.3); }
+100% { transform: scale(1); }
+}
+
+/* Применение дополнительных анимаций */
+.stat-value.updating {
+animation: valueUpdate 0.5s ease;
+}
+
+.nav-item:active i {
+animation: iconPop 0.3s ease;
+}
+
+/* Эффект при наведении на статистику рефералов */
+.referral-stats .stat-box {
+transition: all 0.3s ease;
+transform-origin: center;
+}
+
+.referral-stats .stat-box:hover {
+transform: scale(1.03) translateY(-5px);
+}
+
+/* Анимация для пустого состояния рефералов */
+@keyframes emptyStateFloat {
+0%, 100% { transform: translateY(0); }
+50% { transform: translateY(-10px); }
+}
+
+.referral-empty {
+animation: emptyStateFloat 3s ease-in-out infinite;
+}
+
+/* Эффект ripple для кнопок */
+.play-btn {
+position: relative;
+overflow: hidden;
+}
+
+.ripple {
+position: absolute;
+border-radius: 50%;
+background: rgba(255, 255, 255, 0.3);
+transform: scale(0);
+animation: ripple 0.6s linear;
+pointer-events: none;
+}
+
+@keyframes ripple {
+to {
+transform: scale(4);
+opacity: 0;
+}
+}
+
+/* Анимация для обновления достижений */
+.achievement-card.just-completed {
+animation: achievementComplete 0.6s ease;
+}
+
+@keyframes achievementComplete {
+0% { transform: scale(1); }
+50% { transform: scale(1.1); }
+75% { transform: rotate(5deg); }
+100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Анимация для загрузки контента */
+@keyframes shimmer {
+0% { background-position: -200% 0; }
+100% { background-position: 200% 0; }
+}
+
+.loading {
+background: linear-gradient(90deg,
+var(--background-color) 0%,
+rgba(255,255,255,0.1) 50%,
+var(--background-color) 100%
+);
+background-size: 200% 100%;
+animation: shimmer 1.5s infinite;
+}
