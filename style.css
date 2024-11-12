@@ -33,7 +33,6 @@ canvas {
 .container {
     max-width: 480px;
     margin: 0 auto;
-    min-height: 100vh;
     position: relative;
     padding: 20px;
     padding-bottom: 85px;
