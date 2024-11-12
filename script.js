@@ -203,12 +203,23 @@ class DailyRewardSystem {
                 now.getMonth() !== lastReward.getMonth() || 
                 now.getFullYear() !== lastReward.getFullYear()) {
                 
-                const streak = (userData.dailyRewardStreak || 0) + 1;
-                if (streak > 7) streak = 7;
+                const nextStreak = (userData.totalDailyStreak || 0) + 1;
+                const rewardTier = Math.min(nextStreak, 7);
                 
-                this.dayNumber.textContent = streak;
-                this.limeReward.textContent = streak * 10;
-                this.attemptsReward.textContent = streak;
+                // Показываем реальное количество дней
+                this.dayNumber.textContent = nextStreak;
+                
+                // Но награды считаем по ограниченному значению
+                this.limeReward.textContent = rewardTier * 10;
+                this.attemptsReward.textContent = rewardTier;
+                
+                // Добавляем отображение информации о максимальной награде
+                if (nextStreak > 7) {
+                    const rewardInfo = document.createElement('div');
+                    rewardInfo.className = 'reward-info';
+                    rewardInfo.textContent = 'Максимальная награда (как за 7 день)';
+                    this.modal.querySelector('.rewards-container').appendChild(rewardInfo);
+                }
                 
                 this.modal.style.display = 'flex';
             }
