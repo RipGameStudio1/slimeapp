@@ -971,10 +971,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.play-btn').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            const gameTitle = this.closest('.game-card').querySelector('.game-title').textContent;
-            showToast(`Starting ${gameTitle}...`);
+            const gameCard = this.closest('.game-card');
+            const gameTitle = gameCard.querySelector('.game-title').textContent;
             
-            // Здесь можно добавить логику запуска игр
+            // Если это SLIME NINJA
+            if (gameTitle === 'SLIME NINJA') {
+                window.location.href = 'cutterindex.html';
+                return;
+            }
+            
+            showToast(`Starting ${gameTitle}...`);
             this.classList.add('disabled');
             setTimeout(() => {
                 this.classList.remove('disabled');
