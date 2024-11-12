@@ -203,33 +203,75 @@ class DailyRewardSystem {
                 now.getMonth() !== lastReward.getMonth() || 
                 now.getFullYear() !== lastReward.getFullYear()) {
                 
-                const nextStreak = (userData.totalDailyStreak || 0) + 1;
-                const rewardTier = Math.min(nextStreak, 7);
+                const nextStreak = (userData.dailyRewardStreak || 0) + 1;
+                const rewardDay = Math.min(nextStreak, 7);
                 
-                // Показываем реальное количество дней
                 this.dayNumber.textContent = nextStreak;
-                
-                // Но награды считаем по ограниченному значению
-                this.limeReward.textContent = rewardTier * 10;
-                this.attemptsReward.textContent = rewardTier;
-                
-                // Добавляем отображение информации о максимальной награде
-                if (nextStreak > 7) {
-                    const rewardInfo = document.createElement('div');
-                    rewardInfo.className = 'reward-info';
-                    rewardInfo.textContent = 'Максимальная награда (как за 7 день)';
-                    this.modal.querySelector('.rewards-container').appendChild(rewardInfo);
-                }
+                this.limeReward.textContent = rewardDay * 10;
+                this.attemptsReward.textContent = rewardDay;
                 
                 this.modal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                
+                // Запускаем анимации
+                this.initAnimations();
+                
+                // Добавляем эффект частиц
+                this.createParticles();
             }
         } catch (error) {
             console.error('Error checking daily reward:', error);
         }
     }
+    // Добавим метод инициализации анимаций
+    initAnimations() {
+        this.modal.querySelector('.streak-counter').style.opacity = '0';
+        this.modal.querySelector('.streak-description').style.opacity = '0';
+        this.modal.querySelector('.rewards-container').style.opacity = '0';
+        this.modal.querySelector('.claim-reward-btn').style.opacity = '0';
+
+        setTimeout(() => {
+            this.modal.querySelector('.streak-counter').style.opacity = '1';
+            this.modal.querySelector('.streak-counter').style.transform = 'scale(1)';
+        }, 100);
+
+        setTimeout(() => {
+            this.modal.querySelector('.streak-description').style.opacity = '1';
+        }, 300);
+
+        setTimeout(() => {
+            this.modal.querySelector('.rewards-container').style.opacity = '1';
+        }, 500);
+
+        setTimeout(() => {
+            this.modal.querySelector('.claim-reward-btn').style.opacity = '1';
+        }, 700);
+    }
+    createParticles() {
+        const particles = document.createElement('div');
+        particles.className = 'reward-particles';
+        this.modal.appendChild(particles);
+        
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.setProperty('--x', `${Math.random() * 200 - 100}px`);
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.animationDelay = `${Math.random() * 2}s`;
+            particles.appendChild(particle);
+        }
+    
+        // Удаляем частицы после завершения анимации
+        setTimeout(() => {
+            particles.remove();
+        }, 3000);
+    }
 
     async claimReward() {
         try {
+            this.claimButton.disabled = true;
+            this.claimButton.textContent = 'Получение...';
+            
             const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}/daily-reward`, {
                 method: 'POST'
             });
@@ -238,21 +280,32 @@ class DailyRewardSystem {
             
             const result = await response.json();
             
-            // Обновляем данные пользователя
-            window.farmingSystem.limeAmount = result.totalLime;
-            window.farmingSystem.updateLimeDisplay();
+            // Создаем эффект вспышки
+            const flash = document.createElement('div');
+            flash.className = 'reward-flash';
+            this.modal.appendChild(flash);
+            
+            // Анимируем получение награды
+            await this.updateUIAfterReward(result);
             
             // Показываем уведомление
             showToast(`Получено: ${result.limeReward} $lime и ${result.attemptsReward} попыток!`);
             
-            // Закрываем модальное окно
-            this.modal.style.display = 'none';
+            // Закрываем модальное окно с анимацией
+            this.modal.style.animation = 'modalClose 0.5s ease forwards';
             
-            // Добавляем анимацию получения награды
-            this.animateRewardClaim(result.limeReward, result.attemptsReward);
+            setTimeout(() => {
+                this.modal.style.display = 'none';
+                this.modal.style.animation = '';
+                document.body.style.overflow = 'auto';
+                flash.remove();
+            }, 500);
+            
         } catch (error) {
             console.error('Error claiming reward:', error);
             showToast('Failed to claim reward. Please try again.');
+            this.claimButton.disabled = false;
+            this.claimButton.textContent = 'Получить награду';
         }
     }
 
@@ -277,6 +330,44 @@ class DailyRewardSystem {
     }
 }
 
+async updateUIAfterReward(result) {
+    // Обновляем значения
+    window.farmingSystem.limeAmount = result.totalLime;
+    window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
+    
+    // Анимируем изменения
+    const limeElement = document.querySelector('.lime-amount');
+    const attemptsElement = document.querySelector('.attempts-count');
+    
+    if (limeElement) {
+        const oldValue = parseFloat(limeElement.textContent);
+        const newValue = result.totalLime;
+        
+        // Анимация изменения числа
+        const steps = 20;
+        const increment = (newValue - oldValue) / steps;
+        let current = oldValue;
+        
+        const updateNumber = () => {
+            current += increment;
+            limeElement.textContent = current.toFixed(5);
+            
+            if (increment > 0 ? current < newValue : current > newValue) {
+                requestAnimationFrame(updateNumber);
+            } else {
+                limeElement.textContent = newValue.toFixed(5);
+            }
+        };
+        
+        requestAnimationFrame(updateNumber);
+    }
+    
+    if (attemptsElement) {
+        attemptsElement.textContent = result.totalAttempts;
+        attemptsElement.classList.add('updated');
+        setTimeout(() => attemptsElement.classList.remove('updated'), 1000);
+    }
+}
 
 class FarmingSystem {
     constructor() {
@@ -296,13 +387,19 @@ class FarmingSystem {
         this.referralCode = null;
         this.slimeNinjaAttempts = 5; // Начальное количество попыток
         this.dailyRewardSystem = new DailyRewardSystem();
+        this.updateSlimeNinjaAttempts();
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
         
         this.initUser();
     }
-
+    updateSlimeNinjaAttempts() {
+        const attemptsElement = document.querySelector('.game-card[data-game="slime-ninja"] .attempts-count');
+        if (attemptsElement) {
+            attemptsElement.textContent = this.slimeNinjaAttempts;
+        }
+    }
     async initUser() {
         const tg = window.Telegram.WebApp;
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
@@ -327,6 +424,7 @@ class FarmingSystem {
             this.referralCode = userData.referralCode;
             this.slimeNinjaAttempts = userData.slimeNinjaAttempts || 5;
             this.dailyRewardSystem.checkDailyReward();
+            this.updateSlimeNinjaAttempts();
     
             if (userData.startTime && this.isActive) {
                 this.startTime = new Date(userData.startTime).getTime();
@@ -1024,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span>🎲 Multiplier x2</span>
                         </div>
                         <div class="stat">
-                            <span>💰 Min Bet: 10</span>
+                            <span>Attempts: <span class="attempts-count">5</span></span>
                         </div>
                     </div>
                     <button class="play-btn">Play Now</button>
