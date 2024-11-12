@@ -1120,29 +1120,50 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
+    width: 100vw;
+    height: 100vh;
+    background: var(--background-color);
     z-index: 1000;
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 20px;
 }
 
 .daily-reward-content {
-    background: var(--background-color);
-    border-radius: 20px;
-    padding: 30px;
-    text-align: center;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
 }
 
 .streak-counter {
     margin-bottom: 20px;
+    animation: scaleIn 0.5s ease;
 }
 
+.day-number {
+    font-size: 120px;
+    font-weight: bold;
+    color: var(--accent-color);
+    display: block;
+    line-height: 1;
+    animation: pulse 2s infinite;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
 .day-number {
     font-size: 72px;
     font-weight: bold;
@@ -1195,87 +1216,6 @@ body {
 .claim-reward-btn:hover {
     transform: scale(1.05);
 }
-
-.daily-reward-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.daily-reward-content {
-    background: var(--background-color);
-    border-radius: 20px;
-    padding: 30px;
-    text-align: center;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.2);
-}
-
-.streak-counter {
-    margin-bottom: 20px;
-}
-
-.day-number {
-    font-size: 72px;
-    font-weight: bold;
-    color: var(--accent-color);
-    display: block;
-}
-
-.day-text {
-    font-size: 24px;
-    color: var(--text-color);
-}
-
-.streak-description {
-    font-size: 18px;
-    color: var(--text-color);
-    margin-bottom: 30px;
-}
-
-.rewards-container {
-    background: rgba(var(--primary-color-rgb), 0.1);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 30px;
-}
-
-.reward-item {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.reward-value {
-    font-size: 20px;
-    color: var(--text-color);
-    font-weight: bold;
-}
-
-.claim-reward-btn {
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    padding: 15px 30px;
-    border-radius: 12px;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.claim-reward-btn:hover {
-    transform: scale(1.05);
-}
-
 .reward-info {
     font-size: 14px;
     color: var(--text-color);
