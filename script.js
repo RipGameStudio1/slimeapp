@@ -1178,7 +1178,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return;
             }
-            
+            if (gameTitle === 'LUCKoMETR') {
+                window.location.href = 'luckometr.html';
+            }
             showToast(`Starting ${gameTitle}...`);
             this.classList.add('disabled');
             setTimeout(() => {
