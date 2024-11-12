@@ -1171,3 +1171,15 @@ input:focus-visible,
     transform: translateY(20px);
     pointer-events: none;
 }
+
+.play-btn.disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none !important;
+    opacity: 0.7;
+}
+
+.play-btn.disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
