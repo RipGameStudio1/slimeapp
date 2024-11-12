@@ -1391,3 +1391,36 @@ body {
 [data-theme="dark"] .particle {
     background: var(--primary-color);
 }
+
+.updated {
+    animation: valueUpdate 1s ease;
+}
+
+@keyframes valueUpdate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: var(--accent-color); }
+    100% { transform: scale(1); }
+}
+
+.reward-flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    opacity: 0;
+    animation: flash 0.5s ease-out;
+    pointer-events: none;
+}
+
+@keyframes flash {
+    0% { opacity: 0; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0; }
+}
+
+@keyframes modalClose {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.1); }
+}
