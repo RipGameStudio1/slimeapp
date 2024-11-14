@@ -34,8 +34,7 @@
             position: relative;
             overflow: hidden;
         }
-
-        .back-button {
+		.back-button {
             position: fixed;
             top: 20px;
             left: 20px;
@@ -119,8 +118,7 @@
             color: var(--secondary);
             font-weight: bold;
         }
-
-        .title {
+		.title {
             color: white;
             font-size: 2.5rem;
             font-weight: 600;
@@ -240,7 +238,7 @@
 
         @keyframes shimmer {
             0% { transform: translateX(-100%); }
-			100% { transform: translateX(100%); }
+            100% { transform: translateX(100%); }
         }
 
         .reel::before {
@@ -263,8 +261,7 @@
         .reel.anticipation {
             animation: anticipation 0.5s ease-in-out infinite;
         }
-
-        @keyframes rainbowGlow {
+		@keyframes rainbowGlow {
             0% { text-shadow: 0 0 10px #ff0000; }
             16.666% { text-shadow: 0 0 10px #ff8800; }
             33.333% { text-shadow: 0 0 10px #ffff00; }
@@ -305,23 +302,23 @@
         }
 
         .symbols {
-            position: absolute;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+			position: absolute;
+			width: 100%;
+			display: flex;
+			flex-direction: column;
+			transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			will-change: transform;
+		}
 
-        .symbol {
-            width: 100%;
-            height: 80px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 40px;
-            background: rgba(255,255,255,0.02);
-            transition: all 0.3s ease;
-        }
+		.symbol {
+			width: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-shrink: 0;
+			transform: translateZ(0);
+			background: rgba(255,255,255,0.02);
+		}
 
         .symbol:hover {
             transform: scale(1.1);
@@ -408,8 +405,7 @@
             background: linear-gradient(45deg, var(--secondary), #6bffb8);
             animation: pulse 1.5s infinite;
         }
-
-        .spin-button:disabled, .auto-spin-button:disabled {
+		.spin-button:disabled, .auto-spin-button:disabled {
             background: #2d2d2d;
             box-shadow: none;
             cursor: not-allowed;
@@ -511,9 +507,56 @@
             opacity: 1;
         }
 
-        @media (max-width: 480px) {
+        /* Адаптивный дизайн */
+        @media screen and (max-width: 320px) {
+            .title {
+                font-size: 1.8rem;
+            }
+            
+            .user-name {
+                font-size: 1rem;
+            }
+            
+            .balance {
+                font-size: 1.2rem;
+                padding: 10px 15px;
+            }
+            
             .slot-machine {
                 padding: 15px;
+            }
+            
+            .reel {
+				position: relative;
+				overflow: hidden;
+				transform-style: preserve-3d;
+				will-change: transform;
+			}
+            @keyframes spin {
+				from { transform: translateY(0); }
+				to { transform: translateY(-100%); }
+			}
+            .symbol {
+                font-size: 25px;
+                height: 50px;
+            }
+            
+            .buttons {
+                gap: 8px;
+            }
+            
+            .spin-button, .auto-spin-button {
+                padding: 10px;
+                font-size: 14px;
+            }
+        }
+		@media screen and (min-width: 321px) and (max-width: 375px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .slot-machine {
+                padding: 20px;
             }
             
             .reel {
@@ -523,6 +566,239 @@
             
             .symbol {
                 font-size: 30px;
+                height: 60px;
+            }
+        }
+
+        @media screen and (min-width: 376px) and (max-width: 425px) {
+            .reel {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .symbol {
+                font-size: 35px;
+                height: 70px;
+            }
+        }
+
+        @media screen and (min-width: 426px) and (max-width: 768px) {
+            .slot-machine {
+                max-width: 500px;
+            }
+            
+            .reel {
+                width: 90px;
+                height: 90px;
+            }
+            
+            .symbol {
+                font-size: 45px;
+                height: 90px;
+            }
+        }
+
+        @media screen and (min-width: 769px) {
+            .slot-machine {
+                max-width: 600px;
+            }
+            
+            .reel {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .symbol {
+                font-size: 60px;
+                height: 120px;
+            }
+            
+            .buttons {
+                gap: 20px;
+            }
+            
+            .spin-button, .auto-spin-button {
+                padding: 20px;
+                font-size: 20px;
+            }
+        }
+
+        @media screen and (orientation: landscape) and (max-height: 500px) {
+            body {
+                padding: 10px;
+            }
+            
+            .title {
+                font-size: 1.8rem;
+                margin-bottom: 5px;
+            }
+            
+            .user-name {
+                margin-bottom: 10px;
+            }
+            
+            .balance {
+                margin-bottom: 10px;
+            }
+            
+            .slot-machine {
+                padding: 15px;
+            }
+            
+            .reels {
+                margin-bottom: 15px;
+            }
+        }
+
+        @media screen and (min-width: 1440px) {
+            .slot-machine {
+                max-width: 800px;
+            }
+            
+            .title {
+                font-size: 3rem;
+            }
+            
+            .user-name {
+                font-size: 1.4rem;
+            }
+            
+            .balance {
+                font-size: 1.8rem;
+            }
+            
+            .reel {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .symbol {
+                font-size: 75px;
+                height: 150px;
+            }
+            
+            .spin-button, .auto-spin-button {
+                padding: 25px;
+                font-size: 24px;
+            }
+            
+            .result {
+                font-size: 24px;
+            }
+            
+            .bet-selector {
+                padding: 20px;
+            }
+            
+            .bet-option {
+                padding: 12px 20px;
+                font-size: 18px;
+            }
+        }
+		@media screen and (min-width: 768px) and (max-width: 1024px) {
+            .slot-machine {
+                max-width: 700px;
+            }
+            
+            .bet-selector {
+                max-width: 700px;
+                margin: 0 auto 20px;
+            }
+            
+            .bet-options {
+                justify-content: space-around;
+            }
+            
+            .bet-option {
+                min-width: 100px;
+            }
+        }
+
+        @media (hover: none) {
+            .spin-button:active, .auto-spin-button:active {
+                transform: scale(0.95);
+            }
+            
+            .bet-option:active {
+                background: var(--primary);
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .bet-selector {
+                background: rgba(0, 0, 0, 0.3);
+            }
+            
+            .current-bet-info {
+                background: rgba(0, 0, 0, 0.2);
+            }
+            
+            .timer {
+                background: rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        @media screen and (min-width: 2560px) {
+            .slot-machine {
+                max-width: 1000px;
+            }
+            
+            .title {
+                font-size: 4rem;
+            }
+            
+            .user-name {
+                font-size: 1.8rem;
+            }
+            
+            .balance {
+                font-size: 2.2rem;
+            }
+            
+            .reel {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .symbol {
+                font-size: 100px;
+                height: 200px;
+            }
+            
+            .spin-button, .auto-spin-button {
+                padding: 30px;
+                font-size: 28px;
+            }
+            
+            .bet-option {
+                padding: 15px 25px;
+                font-size: 22px;
+            }
+        }
+
+        @media print {
+            .spin-button, .auto-spin-button {
+                display: none;
+            }
+            
+            .slot-machine {
+                box-shadow: none;
+                border: 1px solid #000;
+            }
+            
+            .balance {
+                border: 1px solid #000;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+            
+            .spin-button:hover, .auto-spin-button:hover {
+                transform: none;
             }
         }
     </style>
@@ -547,8 +823,7 @@
             <button class="bet-option" data-bet="1000">1000</button>
         </div>
     </div>
-    
-    <div class="current-bet-info">
+	<div class="current-bet-info">
         Current Bet: <span class="current-bet-amount">10</span>
     </div>
 
@@ -605,6 +880,7 @@ const betMultipliers = {
 };
 
 let balance = parseInt(localStorage.getItem('balance')) || 1000;
+
 function updateBalance(amount) {
     const balanceElement = document.getElementById('balance');
     const balanceContainer = balanceElement.parentElement;
@@ -659,7 +935,6 @@ function updateBalance(amount) {
     localStorage.setItem('balance', balance.toString());
     updateBetButtons();
 }
-
 function toggleBetSelector() {
     const betSelector = document.querySelector('.bet-selector');
     const currentBetInfo = document.querySelector('.current-bet-info');
@@ -676,7 +951,6 @@ function toggleBetSelector() {
 function calculateWinAmount(symbols) {
     const [first, second, third] = symbols;
     
-    // Если есть фри спины - используем фиксированные значения
     if (spinsRemaining > 0) {
         // Джекпот из кубиков
         if (first === '🎲' && second === '🎲' && third === '🎲') {
@@ -700,25 +974,20 @@ function calculateWinAmount(symbols) {
         
         return 0;
     } else {
-        // Если фри спины закончились - используем множители ставок
         const multiplier = betMultipliers[currentBet.toString()];
         
-        // Джекпот из кубиков
         if (first === '🎲' && second === '🎲' && third === '🎲') {
             return 1000 * multiplier;
         }
         
-        // Обычный джекпот
         if (first === second && second === third) {
             return 100 * multiplier;
         }
         
-        // 2 кубика в ряд
         if ((first === '🎲' && second === '🎲') || (second === '🎲' && third === '🎲')) {
             return 100 * multiplier;
         }
         
-        // Маленький выигрыш
         if (first === second || second === third) {
             return 15 * multiplier;
         }
@@ -793,7 +1062,7 @@ function updateTimer() {
     if (remaining <= 0) {
         timerElement.style.display = 'none';
         spinsRemaining = INITIAL_SPINS;
-        localStorage.removeItem('freeSpinsEndMessageShown'); // Сбрасываем флаг
+        localStorage.removeItem('freeSpinsEndMessageShown');
         updateSpinsLeft();
         localStorage.removeItem('nextSpinsReset');
         enableButtons();
@@ -811,7 +1080,6 @@ function enableButtons() {
     const spinButton = document.querySelector('.spin-button');
     const autoSpinButton = document.querySelector('.auto-spin-button');
     
-    // Включаем кнопки если есть фри спины или достаточно баланса
     if (spinsRemaining > 0 || balance >= currentBet) {
         spinButton.disabled = false;
         autoSpinButton.disabled = false;
@@ -850,9 +1118,14 @@ function createConfetti() {
 }
 
 function createSymbolsString() {
-    return symbols.map(symbol => 
-        `<div class="symbol">${symbol}</div>`
-    ).join('');
+    // Добавляем дополнительные символы для плавного перехода
+    let symbolsString = '';
+    for (let i = 0; i < 4; i++) { // Увеличиваем количество повторений
+        symbols.forEach(symbol => {
+            symbolsString += `<div class="symbol">${symbol}</div>`;
+        });
+    }
+    return symbolsString;
 }
 
 function initReels() {
@@ -867,12 +1140,12 @@ function initReels() {
 }
 
 function getVisibleSymbol(reel) {
+    const symbolHeight = getSymbolHeight();
     const transform = reel.style.transform;
     const translateY = parseInt(transform.match(/-?\d+/)[0]);
-    const symbolHeight = window.innerWidth >= 768 ? 100 : 80;
     const totalSymbols = symbols.length;
-    const visibleIndex = (Math.abs(translateY / symbolHeight) % totalSymbols);
-    return symbols[Math.floor(visibleIndex)];
+    const visibleIndex = Math.abs(Math.round(translateY / symbolHeight) % totalSymbols);
+    return symbols[visibleIndex];
 }
 
 function updateSpinsLeft() {
@@ -886,9 +1159,7 @@ function updateSpinsLeft() {
     }
     
     toggleBetSelector();
-    
-    // Показываем сообщение когда заканчиваются фри спины
-    if (spinsRemaining === 0 && !localStorage.getItem('freeSpinsEndMessageShown')) {
+	if (spinsRemaining === 0 && !localStorage.getItem('freeSpinsEndMessageShown')) {
         if (isAutoSpinning) {
             stopAutoSpin();
         }
@@ -907,6 +1178,7 @@ function updateSpinsLeft() {
 
     localStorage.setItem('spinsRemaining', spinsRemaining.toString());
 }
+
 function determineOutcome() {
     const random = Math.random();
     
@@ -976,15 +1248,8 @@ function createJackpotEffect(element) {
     setTimeout(() => container.remove(), 2000);
 }
 function checkResult() {
-    const symbolHeight = window.innerWidth >= 768 ? 100 : 80;
-    const visibleSymbols = Array.from(reels).map(reel => {
-        const transform = reel.style.transform;
-        const translateY = parseInt(transform.match(/-?\d+/)[0]);
-        const totalSymbols = symbols.length;
-        const visibleIndex = (Math.abs(translateY / symbolHeight) % totalSymbols);
-        return symbols[Math.floor(visibleIndex)];
-    });
-
+    const visibleSymbols = Array.from(reels).map(reel => getVisibleSymbol(reel));
+    
     document.querySelectorAll('.symbol.winning').forEach(symbol => {
         symbol.classList.remove('winning');
     });
@@ -1015,9 +1280,9 @@ function checkResult() {
         updateBalance(winAmount);
     }
 
+    // Проверка на джекпот (3 одинаковых символа)
     if (visibleSymbols[0] === visibleSymbols[1] && visibleSymbols[1] === visibleSymbols[2]) {
         const isJackpotDice = visibleSymbols[0] === '🎲';
-        // Добавляем бонусные спины только если это фри спины
         if (spinsRemaining > 0) {
             spinsRemaining += JACKPOT_BONUS_SPINS;
         }
@@ -1037,10 +1302,10 @@ function checkResult() {
         createConfetti();
         slotMachine.style.animation = 'jackpotWin 0.5s ease-in-out 3';
 
+    // Проверка на малый выигрыш (2 одинаковых символа рядом)
     } else if (visibleSymbols[0] === visibleSymbols[1] || visibleSymbols[1] === visibleSymbols[2]) {
         const isDiceWin = (visibleSymbols[0] === '🎲' && visibleSymbols[1] === '🎲') || 
                          (visibleSymbols[1] === '🎲' && visibleSymbols[2] === '🎲');
-        // Добавляем бонусные спины только если это фри спины
         if (spinsRemaining > 0) {
             spinsRemaining += SMALL_WIN_BONUS_SPINS;
         }
@@ -1068,23 +1333,20 @@ function checkResult() {
     }, 1500);
     
     updateSpinsLeft();
-
-    if (isAutoSpinning) {
-        setTimeout(() => {
-            if (spinsRemaining > 0 || balance >= currentBet) {
-                performAutoSpin();
-            } else {
-                stopAutoSpin();
-            }
-        }, 1000);
-    }
+}
+function getSymbolHeight() {
+    const width = window.innerWidth;
+    if (width < 321) return 50;
+    if (width < 376) return 60;
+    if (width < 426) return 70;
+    if (width < 769) return 90;
+    if (width < 1440) return 120;
+    return 150;
 }
 function spin() {
     if (isSpinning) return;
     
-    // Проверяем условия для спина
     if (spinsRemaining <= 0) {
-        // Если нет фри спинов, проверяем баланс
         if (balance < currentBet) return;
     }
     
@@ -1092,7 +1354,6 @@ function spin() {
         symbol.classList.remove('winning');
     });
     
-    // Обработка списания ставки или фри спина
     if (spinsRemaining > 0) {
         spinsRemaining--;
     } else {
@@ -1111,7 +1372,7 @@ function spin() {
     }
     result.textContent = '';
 
-    const symbolHeight = window.innerWidth >= 768 ? 100 : 80;
+    const symbolHeight = getSymbolHeight();
     let finalSymbols = determineOutcome();
     let reelStoppedCount = 0;
 
@@ -1121,7 +1382,7 @@ function spin() {
         reel.style.transition = 'none';
         reel.style.transform = 'translateY(0)';
         
-        reel.offsetHeight; // Форсируем перерисовку
+        reel.offsetHeight;
 
         const extraSpins = 2;
         const totalSymbols = symbols.length;
@@ -1170,13 +1431,11 @@ function spin() {
     setTimeout(() => {
         isSpinning = false;
         
-        // Проверяем условия для активации кнопок после спина
         if (!isAutoSpinning) {
             if (spinsRemaining > 0 || balance >= currentBet) {
                 button.disabled = false;
             } else {
                 button.disabled = true;
-                // Если это был последний фри спин, показываем сообщение
                 if (spinsRemaining === 0) {
                     const result = document.querySelector('.result');
                     result.innerHTML = `
@@ -1184,25 +1443,21 @@ function spin() {
                             Free Spins Ended! Select your bet to continue playing.
                         </div>`;
                     result.style.color = '#45B7D1';
-                    stopAutoSpin(); // Останавливаем автоспины если они были активны
+                    stopAutoSpin();
                 }
             }
         }
         
         checkResult();
-        
-        // Обновляем состояние кнопок
         enableButtons();
         
     }, totalSpinTime);
 }
-
 function toggleAutoSpin() {
     const autoSpinButton = document.querySelector('.auto-spin-button');
     const spinButton = document.querySelector('.spin-button');
     
     if (!isAutoSpinning) {
-        // Проверяем возможность начать авто-спины
         if (spinsRemaining <= 0 && balance < currentBet) return;
         
         isAutoSpinning = true;
@@ -1212,7 +1467,6 @@ function toggleAutoSpin() {
         spinButton.disabled = true;
         updateSpinsCounter();
         
-        // Немедленно запускаем первый спин
         if (!isSpinning) {
             performAutoSpin();
         }
@@ -1222,16 +1476,13 @@ function toggleAutoSpin() {
 }
 
 function performAutoSpin() {
-    if (!isAutoSpinning) {
-        return;
-    }
+    if (!isAutoSpinning) return;
     
     if (autoSpinCount >= MAX_AUTO_SPINS) {
         stopAutoSpin();
         return;
     }
 
-    // Проверяем возможность спина
     if (spinsRemaining <= 0 && balance < currentBet) {
         stopAutoSpin();
         return;
@@ -1241,7 +1492,6 @@ function performAutoSpin() {
         spin();
         autoSpinCount++;
         updateSpinsCounter();
-        // Запускаем следующий спин через 5 секунд
         setTimeout(() => {
             if (isAutoSpinning) {
                 performAutoSpin();
@@ -1271,7 +1521,6 @@ function updateSpinsCounter() {
     spinsCounter.classList.add('visible');
 }
 
-// Инициализация при загрузке страницы
 window.addEventListener('load', () => {
     const userNameElement = document.querySelector('.user-name');
     if (tg.initDataUnsafe?.user?.username) {
