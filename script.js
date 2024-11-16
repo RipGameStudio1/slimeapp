@@ -203,7 +203,21 @@ class DailyRewardSystem {
                 now.getMonth() !== lastReward.getMonth() || 
                 now.getFullYear() !== lastReward.getFullYear()) {
                 
-                const nextStreak = (userData.dailyRewardStreak || 0) + 1;
+                // Проверяем, не прервалась ли серия
+                let nextStreak = 1; // По умолчанию начинаем с 1
+                if (lastReward) {
+                    const lastRewardDate = new Date(lastReward);
+                    lastRewardDate.setHours(0, 0, 0, 0);
+                    const todayDate = new Date(now);
+                    todayDate.setHours(0, 0, 0, 0);
+                    const daysDiff = Math.floor((todayDate - lastRewardDate) / (24 * 60 * 60 * 1000));
+                    
+                    if (daysDiff === 1) {
+                        // Если зашёл на следующий день - увеличиваем серию
+                        nextStreak = (userData.dailyRewardStreak || 0) + 1;
+                    }
+                }
+                
                 const rewardDay = Math.min(nextStreak, 7);
                 
                 this.dayNumber.textContent = nextStreak;
@@ -218,6 +232,7 @@ class DailyRewardSystem {
             }
         } catch (error) {
             console.error('Error checking daily reward:', error);
+            showToast('Failed to check daily reward');
         }
     }
 
