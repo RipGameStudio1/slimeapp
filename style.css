@@ -725,7 +725,6 @@ canvas {
     color: var(--accent-color);
     display: block;
     line-height: 1;
-    animation: pulse 2s infinite;
     text-align: center;
     width: 100%;
 }
