@@ -490,9 +490,10 @@ class FarmingSystem {
             clearInterval(this.updateInterval);
         }
         
+        // Обновляем каждые 50мс для плавной анимации
         this.updateInterval = setInterval(async () => {
             await this.updateFromServer();
-        }, 50); 
+        }, 50);
     }
     async updateFromServer() {
         try {
@@ -501,15 +502,39 @@ class FarmingSystem {
             
             const data = await response.json();
             
-            if (data.isActive) {
-                if (data.currentProgress) {
-                    this.updateProgress(data.currentProgress);
+            if (data.isActive && data.currentProgress) {
+                // Обновляем прогресс во время активного фарминга
+                const progress = data.currentProgress;
+                
+                // Обновляем прогресс-бар
+                const progressBar = this.button.querySelector('.farming-progress');
+                if (progressBar) {
+                    progressBar.style.width = `${progress.progress}%`;
                 }
-            } else if (this.isActive) {
+    
+                // Обновляем время
+                this.buttonContent.textContent = `Farming: ${progress.remainingTime} seconds`;
+    
+                // Обновляем баланс
+                this.limeAmount = progress.currentLimeAmount;
+                this.updateLimeDisplay();
+    
+                // Обновляем опыт
+                this.levelSystem.xp = progress.currentXp;
+                this.levelSystem.updateDisplay();
+    
+                // Проверяем уровень
+                const requiredXp = this.levelSystem.calculateXpForLevel(this.levelSystem.level);
+                if (this.levelSystem.xp >= requiredXp) {
+                    this.levelSystem.levelUp();
+                }
+            } else if (!data.isActive && this.isActive) {
+                // Фарминг завершен
                 this.completeFarming(data);
+            } else if (!this.isActive) {
+                // Обычное обновление данных
+                this.updateAllData(data);
             }
-
-            this.updateAllData(data);
         } catch (error) {
             console.error('Error updating:', error);
         }
@@ -558,7 +583,7 @@ class FarmingSystem {
             this.updateInterval = null;
         }
     
-        // Обновляем все данные
+        // Обновляем финальные данные
         this.limeAmount = parseFloat(data.limeAmount);
         this.levelSystem.xp = data.xp;
         this.levelSystem.level = data.level;
