@@ -256,7 +256,17 @@ class DailyRewardSystem {
             showToast('Failed to check daily reward');
         }
     }
-
+    updateStreakIndicator(currentStreak) {
+    const dots = document.querySelectorAll('.streak-dot');
+    dots.forEach((dot, index) => {
+        dot.classList.remove('active', 'current');
+        if (index < currentStreak - 1) {
+            dot.classList.add('active');
+        } else if (index === currentStreak - 1) {
+            dot.classList.add('active', 'current');
+        }
+    });
+}
     async claimReward() {
         try {
             this.claimButton.disabled = true;
