@@ -244,7 +244,7 @@ class DailyRewardSystem {
                 this.dayNumber.textContent = nextStreak;
                 this.limeReward.textContent = rewardDay * 10;
                 this.attemptsReward.textContent = rewardDay;
-                
+                this.updateStreakIndicator(nextStreak);
                 this.modal.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
                 
