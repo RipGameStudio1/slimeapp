@@ -355,19 +355,28 @@ class DailyRewardSystem {
     }
     animateRewardClaim(limeAmount, attempts) {
         const limeText = document.createElement('div');
-        limeText.className = 'floating-reward';
+        limeText.className = 'floating-reward lime';
         limeText.textContent = `+${limeAmount} $lime`;
+        limeText.style.animation = 'floatUp 2s ease-out forwards';
         document.body.appendChild(limeText);
-
-        const attemptsText = document.createElement('div');
-        attemptsText.className = 'floating-reward';
-        attemptsText.textContent = `+${attempts} attempts`;
-        document.body.appendChild(attemptsText);
-
+    
+        setTimeout(() => {
+            const attemptsText = document.createElement('div');
+            attemptsText.className = 'floating-reward attempts';
+            attemptsText.textContent = `+${attempts} attempts`;
+            attemptsText.style.animation = 'floatUp 2s ease-out forwards';
+            document.body.appendChild(attemptsText);
+        }, 200);
+    
         setTimeout(() => {
             limeText.remove();
-            attemptsText.remove();
         }, 2000);
+    
+        setTimeout(() => {
+            if (document.body.contains(attemptsText)) {
+                attemptsText.remove();
+            }
+        }, 2200);
     }
 
     initAnimations() {
@@ -775,11 +784,30 @@ class FarmingSystem {
 }
 
 function showToast(message) {
-    const toast = document.getElementById('toast');
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    const toast = document.getElementById('toast') || document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
     toast.textContent = message;
+    
+    if (!document.body.contains(toast)) {
+        document.body.appendChild(toast);
+    }
+    void toast.offsetWidth;
+    
     toast.classList.add('show');
+    
     setTimeout(() => {
         toast.classList.remove('show');
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                toast.remove();
+            }
+        }, 300); // Время на анимацию исчезновения
     }, 3000);
 }
 
