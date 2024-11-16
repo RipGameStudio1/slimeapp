@@ -493,7 +493,7 @@ class FarmingSystem {
         // Обновляем каждые 50мс для плавной анимации
         this.updateInterval = setInterval(async () => {
             await this.updateFromServer();
-        }, 50);
+        }, 16);
     }
     async updateFromServer() {
         try {
