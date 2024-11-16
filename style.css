@@ -698,31 +698,36 @@ canvas {
 }
 
 .daily-reward-content {
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    width: 100%; 
+    gap: 30px;
+    padding: 20px;
+    text-align: center;
 }
 
 .streak-counter {
-    flex-direction: column; 
-    justify-content: center;
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
     margin-bottom: 20px;
-    text-align: center; 
-    width: 100%; 
 }
 
 .day-number {
     font-size: 120px;
     font-weight: bold;
     color: var(--accent-color);
+    display: block;
     line-height: 1;
     animation: pulse 2s infinite;
-    text-align: center; 
-    margin: 0; 
-    width: 100%; 
+    text-align: center;
+    width: 100%;
 }
 
 .day-text {
@@ -730,8 +735,8 @@ canvas {
     color: var(--text-color);
     text-transform: uppercase;
     margin-top: 10px;
-    text-align: center; 
-    width: 100%; 
+    text-align: center;
+    width: 100%;
 }
 
 .streak-description {
