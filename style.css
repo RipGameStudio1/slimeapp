@@ -706,11 +706,12 @@ canvas {
 }
 
 .streak-counter {
-    margin-bottom: 20px;
-    animation: scaleIn 0.5s ease;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    margin-bottom: 20px;
+    animation: scaleIn 0.5s ease;
 }
 
 .day-number {
@@ -718,10 +719,10 @@ canvas {
     font-weight: bold;
     color: var(--accent-color);
     display: block;
-    text-align: center;
     line-height: 1;
     animation: pulse 2s infinite;
-    margin: 0 auto;
+    text-align: center; 
+    margin: 0;
 }
 
 .day-text {
