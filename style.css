@@ -735,7 +735,6 @@ canvas {
     margin-bottom: 30px;
 }
 
-
 .reward-item {
     display: flex;
     flex-direction: column;
@@ -747,7 +746,7 @@ canvas {
     color: var(--text-color);
     padding: 20px;
     border-radius: 16px;
-    background: rgba(var(--primary-color-rgb), 0.1);
+    background: rgba(var(--accent-color-rgb), 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -758,10 +757,6 @@ canvas {
 .reward-value i {
     font-size: 24px;
     color: var(--accent-color);
-}
-
-.reward-value:hover {
-    transform: translateY(-2px);
 }
 
 /* Звездный дождь */
@@ -817,23 +812,6 @@ canvas {
 
 .claim-reward-btn:active {
     transform: translateY(0);
-}
-
-.claim-reward-btn::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-        45deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        transparent
-    );
-    transform: rotate(45deg);
-    animation: shine 2s infinite;
 }
 
 
@@ -920,15 +898,6 @@ canvas {
     0% { opacity: 1; }
     50% { opacity: 0.3; }
     100% { opacity: 1; }
-}
-.streak-dot.active::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: var(--accent-color);
-    animation: pulse 1.5s infinite;
 }
 
 .toast.show {
