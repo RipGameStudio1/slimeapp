@@ -696,7 +696,7 @@ class FarmingSystem {
 
         // Инициализация навигации
         document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function(e) {
+            item.addEventListener('click', function(e) { 
                 e.preventDefault();
                 const section = this.dataset.section;
                 
@@ -710,9 +710,8 @@ class FarmingSystem {
                     document.querySelector('.play-section').style.display = 'block';
                 } else if (section === 'referrals') {
                     document.querySelector('.referrals-section').style.display = 'block';
-                    this.loadReferralData();
+                    window.farmingSystem.loadReferralData();
                 }
-                
                 document.querySelectorAll('.nav-item').forEach(nav => {
                     nav.classList.remove('active');
                 });
