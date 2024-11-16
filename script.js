@@ -84,23 +84,44 @@ class LevelSystem {
         return 1;
     }
 
-    addXp(amount) {
+    async addXp(amount) {
+        const previousXp = this.xp;
+        const previousLevel = this.level;
+        
         this.xp += amount;
         const requiredXp = this.calculateXpForLevel(this.level);
         
         if (this.xp >= requiredXp) {
-            this.levelUp();
+            await this.levelUp();
+        } else {
+            // Сохраняем новое значение XP
+            const saved = await window.farmingSystem.saveUserData();
+            if (!saved) {
+                // Если сохранение не удалось, откатываем изменения
+                this.xp = previousXp;
+            }
         }
         
         this.updateDisplay();
     }
 
-    levelUp() {
+    async levelUp() {
+        const previousLevel = this.level;
         this.level++;
         this.xp = 0;
-        showToast(`Level Up! Now level ${this.level}`);
-        this.levelElement.classList.add('number-change');
-        setTimeout(() => this.levelElement.classList.remove('number-change'), 300);
+        
+        // Сначала сохраняем данные
+        const saved = await window.farmingSystem.saveUserData();
+        
+        if (saved) {
+            showToast(`Level Up! Now level ${this.level}`);
+            this.levelElement.classList.add('number-change');
+            setTimeout(() => this.levelElement.classList.remove('number-change'), 300);
+        } else {
+            // Если сохранение не удалось, откатываем изменения
+            this.level = previousLevel;
+            this.updateDisplay();
+        }
     }
 
     updateDisplay() {
@@ -524,54 +545,96 @@ class FarmingSystem {
             
             const serverData = await response.json();
             
-            if (!serverData.isActive && this.isActive) {
-                await this.completeFarming();
-                return;
-            }
-            if (this.slimeNinjaAttempts !== serverData.slimeNinjaAttempts) {
-                this.slimeNinjaAttempts = serverData.slimeNinjaAttempts;
-                this.updateSlimeNinjaAttempts();
-            }
+            // Проверяем активный фарминг
             if (serverData.isActive && serverData.startTime) {
                 const serverStartTime = new Date(serverData.startTime).getTime();
                 const now = Date.now();
                 const elapsedTime = now - serverStartTime;
                 
                 if (elapsedTime >= this.farmingDuration) {
+                    // Если время фарминга истекло на сервере
                     await this.completeFarming();
                     return;
                 }
                 
+                // Если на сервере активный фарминг, но локально нет
                 if (!this.isActive || this.startTime !== serverStartTime) {
                     this.startTime = serverStartTime;
                     this.isActive = true;
                     this.baseAmount = parseFloat(serverData.limeAmount);
                     this.resumeFarming(elapsedTime);
+                    return;
                 }
+            } else if (this.isActive && !serverData.isActive) {
+                // Если локально активен фарминг, но на сервере нет
+                await this.completeFarming();
+                return;
             }
-            
+    
+            // Обновляем данные только если нет активного фарминга
             if (!this.isActive) {
+                const previousLimeAmount = this.limeAmount;
+                const previousLevel = this.levelSystem.level;
+                const previousXp = this.levelSystem.xp;
+    
                 this.limeAmount = parseFloat(serverData.limeAmount);
                 this.baseAmount = this.limeAmount;
-                this.updateLimeDisplay();
+                
+                // Обновляем уровень и опыт только если они изменились на сервере
+                if (serverData.level !== previousLevel || serverData.xp !== previousXp) {
+                    this.levelSystem.level = serverData.level;
+                    this.levelSystem.xp = serverData.xp;
+                    this.levelSystem.updateDisplay();
+                }
+    
+                // Обновляем отображение баланса только если он изменился
+                if (previousLimeAmount !== this.limeAmount) {
+                    this.updateLimeDisplay();
+                }
             }
-            
-            this.farmingCount = serverData.farmingCount;
-            this.levelSystem.level = serverData.level;
-            this.levelSystem.xp = serverData.xp;
-            this.levelSystem.updateDisplay();
-            this.slimeNinjaAttempts = serverData.slimeNinjaAttempts;
-            this.updateSlimeNinjaAttempts();
-            
+    
+            // Обновляем количество попыток
+            if (this.slimeNinjaAttempts !== serverData.slimeNinjaAttempts) {
+                this.slimeNinjaAttempts = serverData.slimeNinjaAttempts;
+                this.updateSlimeNinjaAttempts();
+            }
+    
+            // Обновляем счетчик фарминга
+            if (this.farmingCount !== serverData.farmingCount) {
+                this.farmingCount = serverData.farmingCount;
+            }
+    
+            // Обновляем достижения
+            let achievementsChanged = false;
             Object.keys(serverData.achievements || {}).forEach(key => {
-                if (this.achievementSystem.achievements[key]) {
+                if (this.achievementSystem.achievements[key] && 
+                    this.achievementSystem.achievements[key].completed !== serverData.achievements[key]) {
                     this.achievementSystem.achievements[key].completed = serverData.achievements[key];
+                    achievementsChanged = true;
                 }
             });
-            this.achievementSystem.updateDisplay();
+    
+            if (achievementsChanged) {
+                this.achievementSystem.updateDisplay();
+            }
+    
+            // Проверяем ежедневные награды
+            const lastReward = serverData.lastDailyReward ? new Date(serverData.lastDailyReward) : null;
+            const now = new Date();
             
+            if (!lastReward || 
+                now.getDate() !== lastReward.getDate() || 
+                now.getMonth() !== lastReward.getMonth() || 
+                now.getFullYear() !== lastReward.getFullYear()) {
+                this.dailyRewardSystem.checkDailyReward();
+            }
+    
         } catch (error) {
             console.error('Sync error:', error);
+            // Показываем уведомление только если ошибка не связана с отсутствием сети
+            if (error.name !== 'TypeError' || !error.message.includes('Failed to fetch')) {
+                showToast('Sync failed. Will retry later.');
+            }
         }
     }
     async loadReferralData() {
@@ -855,24 +918,27 @@ class FarmingSystem {
                     startTime: this.startTime ? new Date(this.startTime) : null,
                     level: this.levelSystem.level,
                     xp: this.levelSystem.xp,
-                    slimeNinjaAttempts: this.slimeNinjaAttempts, // Убедимся, что это поле всегда отправляется
+                    slimeNinjaAttempts: this.slimeNinjaAttempts,
                     achievements: Object.keys(this.achievementSystem.achievements).reduce((acc, key) => {
                         acc[key] = this.achievementSystem.achievements[key].completed;
                         return acc;
                     }, {})
                 })
             });
-            
+    
             if (!response.ok) {
                 throw new Error('Failed to save user data');
             }
     
             const data = await response.json();
-            // Обновляем локальное значение попыток из ответа сервера
+            // Обновляем только те данные, которые могли измениться на сервере
             this.slimeNinjaAttempts = data.slimeNinjaAttempts;
             this.updateSlimeNinjaAttempts();
+            
+            return true;
         } catch (error) {
             console.error('Error saving user data:', error);
+            return false;
         }
     }
 
