@@ -797,7 +797,7 @@ canvas {
 .star::before {
     content: '▅';
     position: absolute;
-    font-size: 15px;
+    font-size: 10px;
     transform: translate(-50%, -50%);
 }
 
