@@ -689,7 +689,8 @@ canvas {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: var(--background-color);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
     justify-content: center;
@@ -698,81 +699,78 @@ canvas {
 }
 
 .daily-reward-content {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-    padding: 20px;
+    background: var(--background-color);
+    border-radius: 24px;
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     text-align: center;
+    position: relative;
+    overflow: hidden;
 }
 
 .streak-counter {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    position: relative;
 }
 
 .day-number {
-    font-size: 120px;
+    font-size: 72px;
     font-weight: bold;
     color: var(--accent-color);
-    display: block;
-    line-height: 1;
-    text-align: center;
-    width: 100%;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 10px rgba(var(--accent-color-rgb), 0.3);
 }
 
 .day-text {
-    font-size: 32px;
+    font-size: 18px;
     color: var(--text-color);
     text-transform: uppercase;
-    margin-top: 10px;
-    text-align: center;
-    width: 100%;
+    letter-spacing: 2px;
+    opacity: 0.8;
 }
 
 .streak-description {
     font-size: 24px;
     color: var(--text-color);
-    text-align: center;
+    margin-bottom: 30px;
+    font-weight: 600;
 }
 
 .rewards-container {
     background: rgba(var(--primary-color-rgb), 0.1);
-    border-radius: 20px;
-    padding: 30px;
-    width: 80%;
-    max-width: 400px;
-    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 30px;
 }
 
 .reward-item {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    align-items: center;
 }
 
 .reward-value {
-    font-size: 28px;
+    font-size: 24px;
     color: var(--text-color);
-    font-weight: bold;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
+    transition: transform 0.3s ease;
+}
+
+.reward-value:hover {
+    transform: translateY(-2px);
 }
 
 .reward-value i {
     font-size: 24px;
     color: var(--accent-color);
-    animation: rewardIconPulse 2s infinite;
 }
 
 /* Звездный дождь */
@@ -810,25 +808,45 @@ canvas {
     background: var(--accent-color);
     color: white;
     border: none;
-    padding: 20px 40px;
-    border-radius: 15px;
-    font-size: 24px;
-    font-weight: bold;
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    width: 100%;
     text-transform: uppercase;
     letter-spacing: 1px;
-    box-shadow: 0 4px 15px rgba(var(--accent-color-rgb), 0.3);
+    position: relative;
+    overflow: hidden;
 }
 
 .claim-reward-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(var(--accent-color-rgb), 0.4);
+    box-shadow: 0 5px 15px rgba(var(--accent-color-rgb), 0.3);
 }
 
 .claim-reward-btn:active {
-    transform: translateY(1px);
+    transform: translateY(0);
 }
+
+.claim-reward-btn::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    transform: rotate(45deg);
+    animation: shine 2s infinite;
+}
+
 
 /* Toast уведомления */
 .toast {
@@ -845,6 +863,74 @@ canvas {
     transition: transform 0.3s ease;
     z-index: 1000;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+@keyframes shine {
+    0% {
+        transform: rotate(45deg) translateX(-100%);
+    }
+    100% {
+        transform: rotate(45deg) translateX(100%);
+    }
+}
+
+/* Добавим иконки для наград */
+.reward-value.lime::before {
+    content: '🌱';
+    font-size: 24px;
+    margin-right: 10px;
+}
+
+.reward-value.attempts::before {
+    content: '🎮';
+    font-size: 24px;
+    margin-right: 10px;
+}
+
+/* Анимация появления */
+.daily-reward-modal {
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Добавим индикатор серии */
+.streak-indicator {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 20px 0;
+}
+
+.streak-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(var(--accent-color-rgb), 0.2);
+    position: relative;
+}
+
+.streak-dot.active {
+    background: var(--accent-color);
+}
+
+.streak-dot.active::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--accent-color);
+    animation: pulse 1.5s infinite;
 }
 
 .toast.show {
