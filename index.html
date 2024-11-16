@@ -6,7 +6,7 @@
     <title>Lime App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
     <canvas id="canvas"></canvas>
@@ -203,7 +203,7 @@
             </div>
     
             <div class="streak-indicator">
-                <div class="streak-dot active"></div>
+                <div class="streak-dot"></div>
                 <div class="streak-dot"></div>
                 <div class="streak-dot"></div>
                 <div class="streak-dot"></div>
@@ -214,10 +214,12 @@
             
             <div class="rewards-container">
                 <div class="reward-item">
-                    <div class="reward-value lime">
+                    <div class="reward-value">
+                        <i class="fas fa-seedling"></i>
                         +<span class="lime-reward">10</span> $lime
                     </div>
-                    <div class="reward-value attempts">
+                    <div class="reward-value">
+                        <i class="fas fa-gamepad"></i>
                         +<span class="attempts-reward">1</span> попытка
                     </div>
                 </div>
@@ -226,6 +228,6 @@
             <button class="claim-reward-btn">Получить награду</button>
         </div>
     </div>
-    <script src="script.js?v8"></script>
+    <script src="script.js?v9"></script>
 </body>
 </html>
