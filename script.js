@@ -257,6 +257,7 @@ class DailyRewardSystem {
         }
     }
     updateStreakIndicator(currentStreak) {
+        console.log('Updating streak:', currentStreak);
         const dots = document.querySelectorAll('.streak-dot');
         dots.forEach((dot, index) => {
             dot.classList.remove('active', 'current');
@@ -319,49 +320,39 @@ class DailyRewardSystem {
         
         for (let i = 0; i < 50; i++) {
             setTimeout(() => {
-                this.createStar(starRain);
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                const startPos = Math.random() * 100;
+                star.style.left = `${startPos}%`;
+                
+                const duration = 3 + Math.random() * 4;
+                star.style.animation = `starFall ${duration}s linear infinite`;
+                
+                const size = 10 + Math.random() * 10;
+                star.style.fontSize = `${size}px`;
+                
+                const colors = [
+                    '#FFD700', // Gold
+                    '#FFA500', // Orange
+                    '#FF8C00', // Dark Orange
+                    '#FFB6C1', // Light Pink
+                    '#FF69B4'  // Hot Pink
+                ];
+                star.style.color = colors[Math.floor(Math.random() * colors.length)];
+                
+                starRain.appendChild(star);
+                
+                setTimeout(() => {
+                    star.remove();
+                }, duration * 1000);
             }, i * 100);
         }
-
+    
         setTimeout(() => {
             starRain.remove();
         }, 8000);
     }
-
-    createStar(container) {
-        const star = document.createElement('div');
-        star.className = 'star';
-        
-        const startPos = Math.random() * 100;
-        star.style.left = `${startPos}%`;
-        
-        const duration = 3 + Math.random() * 4;
-        star.style.animation = `starFall ${duration}s linear infinite`;
-        
-        const size = 10 + Math.random() * 10;
-        star.style.fontSize = `${size}px`;
-        
-        const colors = [
-            '#FFD700', // Gold
-            '#FFA500', // Orange
-            '#FF8C00', // Dark Orange
-            '#FFB6C1', // Light Pink
-            '#FF69B4'  // Hot Pink
-        ];
-        star.style.color = colors[Math.floor(Math.random() * colors.length)];
-        
-        const rotation = Math.random() * 360;
-        star.style.transform = `rotate(${rotation}deg)`;
-        
-        star.style.setProperty('--twinkle-delay', `${Math.random() * 2}s`);
-
-        container.appendChild(star);
-
-        setTimeout(() => {
-            star.remove();
-        }, duration * 1000);
-    }
-
     animateRewardClaim(limeAmount, attempts) {
         const limeText = document.createElement('div');
         limeText.className = 'floating-reward';
