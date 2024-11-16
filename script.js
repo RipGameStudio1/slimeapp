@@ -399,22 +399,15 @@ class FarmingSystem {
         this.button = document.querySelector('.farming-button');
         this.buttonContent = document.querySelector('.farming-button-content');
         this.farmingDuration = 30 * 1000; // 30 секунд
-        this.rewardAmount = 70;
         this.isActive = false;
         this.limeAmount = 0;
-        this.farmingCount = 0;
-        this.startTime = null;
-        this.lastUpdate = null;
         this.userId = null;
-        this.farmingInterval = null;
-        this.saveInterval = null;
-        this.farmingTimeout = null;
-        this.referralCode = null;
-        this.slimeNinjaAttempts = 5;
+        this.updateInterval = null;
         
         this.levelSystem = new LevelSystem();
         this.achievementSystem = new AchievementSystem();
         this.dailyRewardSystem = new DailyRewardSystem();
+        this.slimeNinjaAttempts = 5;
         
         this.initUser();
     }
@@ -426,68 +419,164 @@ class FarmingSystem {
             await this.loadUserData();
         }
     }
-    
+
     async loadUserData() {
         showLoadingIndicator();
         try {
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
-            if (!response.ok) {
-                throw new Error('Failed to load user data');
-            }
+            if (!response.ok) throw new Error('Failed to load user data');
+            
             const userData = await response.json();
             
-            this.farmingCount = userData.farmingCount || 0;
-            this.isActive = userData.isActive || false;
-            this.levelSystem.level = userData.level || 1;
-            this.levelSystem.xp = userData.xp || 0;
-            this.referralCode = userData.referralCode;
-            this.slimeNinjaAttempts = userData.slimeNinjaAttempts || 0;
-    
-            if (userData.startTime && this.isActive) {
-                this.startTime = new Date(userData.startTime).getTime();
-                const now = Date.now();
-                const elapsedTime = now - this.startTime;
-                
-                if (elapsedTime < this.farmingDuration) {
-                    const earnRate = this.rewardAmount / this.farmingDuration;
-                    const earnedSoFar = earnRate * elapsedTime;
-                    
-                    this.baseAmount = parseFloat(userData.limeAmount) - earnedSoFar;
-                    this.limeAmount = parseFloat(userData.limeAmount);
-                    
-                    this.resumeFarming(elapsedTime);
-                } else {
-                    this.limeAmount = parseFloat(userData.limeAmount);
-                    this.baseAmount = this.limeAmount;
-                    this.completeFarming();
-                }
-            } else {
-                this.limeAmount = parseFloat(userData.limeAmount) || 0;
-                this.baseAmount = this.limeAmount;
-            }
+            this.limeAmount = parseFloat(userData.limeAmount);
+            this.isActive = userData.isActive;
+            this.slimeNinjaAttempts = userData.slimeNinjaAttempts;
             
+            this.levelSystem.level = userData.level;
+            this.levelSystem.xp = userData.xp;
+            
+            // Загружаем достижения
             Object.keys(userData.achievements || {}).forEach(key => {
                 if (this.achievementSystem.achievements[key]) {
                     this.achievementSystem.achievements[key].completed = userData.achievements[key];
                 }
             });
-    
-            this.updateLimeDisplay();
-            this.levelSystem.updateDisplay();
-            this.achievementSystem.updateDisplay();
-            this.initReferralSystem();
-            this.updateSlimeNinjaAttempts();
-            
-            // Проверяем ежедневную награду
+
+            // Если есть активный фарминг
+            if (userData.isActive && userData.startTime) {
+                this.resumeFarmingFromServer(userData);
+            }
+
+            this.updateAllDisplays();
             this.dailyRewardSystem.checkDailyReward();
-            
             this.init();
         } catch (error) {
             console.error('Error loading user data:', error);
-            showToast('Failed to load user data. Please try again later.');
+            showToast('Failed to load user data');
         } finally {
             hideLoadingIndicator();
         }
+    }
+
+    async startFarming() {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${this.userId}/start-farming`, {
+                method: 'POST'
+            });
+            
+            if (!response.ok) throw new Error('Failed to start farming');
+            
+            const data = await response.json();
+            this.isActive = true;
+            this.button.classList.add('disabled');
+            
+            // Создаем прогресс-бар
+            if (!this.button.querySelector('.farming-progress')) {
+                const progressBar = document.createElement('div');
+                progressBar.classList.add('farming-progress');
+                this.button.insertBefore(progressBar, this.buttonContent);
+            }
+            
+            this.startUpdates();
+            showToast('Farming started!');
+        } catch (error) {
+            console.error('Error starting farming:', error);
+            showToast('Failed to start farming');
+        }
+    }
+
+    startUpdates() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+        }
+        
+        this.updateInterval = setInterval(async () => {
+            await this.updateFromServer();
+        }, 50);
+    }
+
+    async updateFromServer() {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${this.userId}`);
+            if (!response.ok) throw new Error('Failed to update');
+            
+            const data = await response.json();
+            
+            if (data.isActive) {
+                if (data.currentProgress) {
+                    this.updateProgress(data.currentProgress);
+                }
+            } else if (this.isActive) {
+                this.completeFarming(data);
+            }
+
+            this.updateAllData(data);
+        } catch (error) {
+            console.error('Error updating:', error);
+        }
+    }
+
+    updateProgress(progress) {
+        const progressBar = this.button.querySelector('.farming-progress');
+        if (progressBar) {
+            progressBar.style.width = `${progress.progress}%`;
+        }
+        
+        const remainingSeconds = Math.ceil(30 - (progress.progress * 0.3));
+        this.buttonContent.textContent = `Farming: ${remainingSeconds} seconds`;
+        
+        if (progress.earned) {
+            this.limeAmount = parseFloat(progress.earned);
+            this.updateLimeDisplay();
+        }
+    }
+
+    async completeFarming(data) {
+        this.isActive = false;
+        this.button.classList.remove('disabled');
+        this.buttonContent.textContent = 'Start Farming';
+        
+        const progressBar = this.button.querySelector('.farming-progress');
+        if (progressBar) {
+            progressBar.remove();
+        }
+
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+
+        this.updateAllData(data);
+        showToast('Farming completed!');
+    }
+
+    updateAllData(data) {
+        this.limeAmount = parseFloat(data.limeAmount);
+        this.levelSystem.level = data.level;
+        this.levelSystem.xp = data.xp;
+        this.slimeNinjaAttempts = data.slimeNinjaAttempts;
+
+        this.updateAllDisplays();
+    }
+
+    updateAllDisplays() {
+        this.updateLimeDisplay();
+        this.levelSystem.updateDisplay();
+        this.updateSlimeNinjaAttempts();
+        this.achievementSystem.updateDisplay();
+    }
+
+    updateLimeDisplay() {
+        const limeAmountElement = document.querySelector('.lime-amount');
+        const formattedNumber = this.limeAmount.toFixed(5);
+        
+        if (limeAmountElement.textContent !== formattedNumber) {
+            limeAmountElement.classList.remove('number-change');
+            void limeAmountElement.offsetWidth;
+            limeAmountElement.classList.add('number-change');
+        }
+        
+        limeAmountElement.textContent = formattedNumber;
     }
 
     updateSlimeNinjaAttempts() {
@@ -495,7 +584,6 @@ class FarmingSystem {
         if (attemptsElement) {
             attemptsElement.textContent = this.slimeNinjaAttempts;
             
-            // Добавляем визуальную индикацию, если попыток нет
             const playButton = document.querySelector('.game-card[data-game="slime-ninja"] .play-btn');
             if (playButton) {
                 if (this.slimeNinjaAttempts <= 0) {
@@ -508,186 +596,113 @@ class FarmingSystem {
             }
         }
     }
-    async updateAttempts(newAmount) {
-        try {
-            // Проверяем, что новое количество не отрицательное
-            if (newAmount < 0) {
-                showToast('Недостаточно попыток!');
-                return false;
+
+    async resumeFarmingFromServer(userData) {
+        const startTime = new Date(userData.startTime).getTime();
+        const now = Date.now();
+        const elapsedTime = now - startTime;
+        
+        if (elapsedTime < this.farmingDuration) {
+            this.isActive = true;
+            this.button.classList.add('disabled');
+            
+            if (!this.button.querySelector('.farming-progress')) {
+                const progressBar = document.createElement('div');
+                progressBar.classList.add('farming-progress');
+                this.button.insertBefore(progressBar, this.buttonContent);
             }
-    
-            const response = await fetch(`${API_URL}/api/users/${this.userId}/update-attempts`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    attempts: newAmount
-                })
-            });
-    
-            if (!response.ok) throw new Error('Failed to update attempts');
             
-            const result = await response.json();
-            this.slimeNinjaAttempts = result.attempts;
-            this.updateSlimeNinjaAttempts();
-            
-            return true;
-        } catch (error) {
-            console.error('Error updating attempts:', error);
-            return false;
+            this.startUpdates();
         }
     }
-    async syncWithServer() {
-        try {
-            const response = await fetch(`${API_URL}/api/users/${this.userId}`);
-            if (!response.ok) throw new Error('Sync failed');
-            
-            const serverData = await response.json();
-            
-            // Проверяем активный фарминг
-            if (serverData.isActive && serverData.startTime) {
-                const serverStartTime = new Date(serverData.startTime).getTime();
-                const now = Date.now();
-                const elapsedTime = now - serverStartTime;
-                
-                if (elapsedTime >= this.farmingDuration) {
-                    // Если время фарминга истекло на сервере
-                    await this.completeFarming();
-                    return;
-                }
-                
-                // Если на сервере активный фарминг, но локально нет
-                if (!this.isActive || this.startTime !== serverStartTime) {
-                    this.startTime = serverStartTime;
-                    this.isActive = true;
-                    this.baseAmount = parseFloat(serverData.limeAmount);
-                    this.resumeFarming(elapsedTime);
-                    return;
-                }
-            } else if (this.isActive && !serverData.isActive) {
-                // Если локально активен фарминг, но на сервере нет
-                await this.completeFarming();
-                return;
-            }
-    
-            // Обновляем данные только если нет активного фарминга
+
+    init() {
+        this.button.addEventListener('click', () => {
             if (!this.isActive) {
-                const previousLimeAmount = this.limeAmount;
-                const previousLevel = this.levelSystem.level;
-                const previousXp = this.levelSystem.xp;
-    
-                this.limeAmount = parseFloat(serverData.limeAmount);
-                this.baseAmount = this.limeAmount;
+                this.startFarming();
+            }
+        });
+
+        // Регулярное обновление данных каждые 5 секунд
+        setInterval(() => {
+            if (!this.isActive) {
+                this.updateFromServer();
+            }
+        }, 5000);
+
+        // Обновление при возвращении на вкладку
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                this.updateFromServer();
+            }
+        });
+
+        // Обновление при восстановлении соединения
+        window.addEventListener('online', () => {
+            this.updateFromServer();
+        });
+
+        // Инициализация навигации
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.dataset.section;
                 
-                // Обновляем уровень и опыт только если они изменились на сервере
-                if (serverData.level !== previousLevel || serverData.xp !== previousXp) {
-                    this.levelSystem.level = serverData.level;
-                    this.levelSystem.xp = serverData.xp;
-                    this.levelSystem.updateDisplay();
+                document.querySelector('.main-content').style.display = 'none';
+                document.querySelector('.play-section').style.display = 'none';
+                document.querySelector('.referrals-section').style.display = 'none';
+                
+                if (section === 'main') {
+                    document.querySelector('.main-content').style.display = 'block';
+                } else if (section === 'play') {
+                    document.querySelector('.play-section').style.display = 'block';
+                } else if (section === 'referrals') {
+                    document.querySelector('.referrals-section').style.display = 'block';
+                    this.loadReferralData();
                 }
-    
-                // Обновляем отображение баланса только если он изменился
-                if (previousLimeAmount !== this.limeAmount) {
-                    this.updateLimeDisplay();
-                }
-            }
-    
-            // Обновляем количество попыток
-            if (this.slimeNinjaAttempts !== serverData.slimeNinjaAttempts) {
-                this.slimeNinjaAttempts = serverData.slimeNinjaAttempts;
-                this.updateSlimeNinjaAttempts();
-            }
-    
-            // Обновляем счетчик фарминга
-            if (this.farmingCount !== serverData.farmingCount) {
-                this.farmingCount = serverData.farmingCount;
-            }
-    
-            // Обновляем достижения
-            let achievementsChanged = false;
-            Object.keys(serverData.achievements || {}).forEach(key => {
-                if (this.achievementSystem.achievements[key] && 
-                    this.achievementSystem.achievements[key].completed !== serverData.achievements[key]) {
-                    this.achievementSystem.achievements[key].completed = serverData.achievements[key];
-                    achievementsChanged = true;
-                }
+                
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                this.classList.add('active');
             });
-    
-            if (achievementsChanged) {
-                this.achievementSystem.updateDisplay();
-            }
-    
-            // Проверяем ежедневные награды
-            const lastReward = serverData.lastDailyReward ? new Date(serverData.lastDailyReward) : null;
-            const now = new Date();
-            
-            if (!lastReward || 
-                now.getDate() !== lastReward.getDate() || 
-                now.getMonth() !== lastReward.getMonth() || 
-                now.getFullYear() !== lastReward.getFullYear()) {
-                this.dailyRewardSystem.checkDailyReward();
-            }
-    
-        } catch (error) {
-            console.error('Sync error:', error);
-            // Показываем уведомление только если ошибка не связана с отсутствием сети
-            if (error.name !== 'TypeError' || !error.message.includes('Failed to fetch')) {
-                showToast('Sync failed. Will retry later.');
-            }
-        }
+        });
+
+        // Инициализация анимаций для игровых карточек
+        document.querySelectorAll('.game-card').forEach((card, index) => {
+            card.style.setProperty('--card-index', index);
+        });
     }
+
     async loadReferralData() {
         try {
-            console.log('Loading referral data...');
             const response = await fetch(`${API_URL}/api/users/${this.userId}/referrals`);
-            
-            if (!response.ok) {
-                console.error('Response not OK:', response.status, response.statusText);
-                throw new Error('Failed to load referral data');
-            }
+            if (!response.ok) throw new Error('Failed to load referral data');
             
             const data = await response.json();
-            console.log('Received referral data:', data);
-            
-            if (!data.referralCode) {
-                console.error('No referral code in response');
-                throw new Error('Referral code is missing in response');
-            }
-            
-            this.referralCode = data.referralCode;
             this.updateReferralUI(data);
         } catch (error) {
             console.error('Error loading referral data:', error);
-            showToast(`Failed to load referral data: ${error.message}`);
+            showToast('Failed to load referral data');
         }
     }
-    
+
     updateReferralUI(data) {
-        console.log('Updating referral UI with data:', data);
-    
         const countElement = document.getElementById('referral-count');
         const earningsElement = document.getElementById('referral-earnings');
         const referralLink = document.getElementById('referral-link');
-    
+
         if (countElement) countElement.textContent = data.referralCount || 0;
         if (earningsElement) earningsElement.textContent = (data.totalEarnings || 0).toFixed(5);
-    
-        if (referralLink) {
-            if (data.referralCode) {
-                const botUsername = 'LimeSlimeBot';
-                referralLink.value = `https://t.me/${botUsername}?start=${data.referralCode}`;
-            } else {
-                referralLink.value = 'Loading...';
-            }
-        } else {
-            console.error('Referral link element not found');
+        if (referralLink && data.referralCode) {
+            const botUsername = 'LimeSlimeBot';
+            referralLink.value = `https://t.me/${botUsername}?start=${data.referralCode}`;
         }
-    
+
         const referralListBody = document.getElementById('referral-list-body');
         if (referralListBody) {
             referralListBody.innerHTML = '';
-    
+
             if (data.referrals && data.referrals.length > 0) {
                 data.referrals.forEach(referral => {
                     const row = document.createElement('div');
@@ -712,311 +727,10 @@ class FarmingSystem {
                 `;
                 referralListBody.appendChild(emptyRow);
             }
-        } else {
-            console.error('Referral list body element not found');
         }
-    }
-    
-    initReferralSystem() {
-        console.log('Initializing referral system...');
-        
-        const copyButton = document.getElementById('copy-link');
-        const referralLink = document.getElementById('referral-link');
-    
-        if (!copyButton || !referralLink) {
-            console.error('Required referral elements not found');
-            return;
-        }
-    
-        this.loadReferralData();
-    
-        copyButton.addEventListener('click', () => {
-            if (referralLink.value && referralLink.value !== 'Loading...') {
-                referralLink.select();
-                document.execCommand('copy');
-                showToast('Referral link copied!');
-            } else {
-                showToast('Please wait, loading referral link...');
-                this.loadReferralData();
-            }
-        });
-    
-        setInterval(() => this.loadReferralData(), 30000);
-    }
-
-    resumeFarming(elapsedTime) {
-        if (this.farmingInterval) {
-            clearInterval(this.farmingInterval);
-            this.farmingInterval = null;
-        }
-        if (this.saveInterval) {
-            clearInterval(this.saveInterval);
-            this.saveInterval = null;
-        }
-        if (this.farmingTimeout) {
-            clearTimeout(this.farmingTimeout);
-            this.farmingTimeout = null;
-        }
-
-        if (elapsedTime >= this.farmingDuration) {
-            this.completeFarming();
-            return;
-        }
-
-        this.isActive = true;
-        this.button.classList.add('disabled');
-        this.lastUpdate = Date.now();
-
-        if (!this.button.querySelector('.farming-progress')) {
-            const progressBar = document.createElement('div');
-            progressBar.classList.add('farming-progress');
-            this.button.insertBefore(progressBar, this.buttonContent);
-        }
-
-        const progressBar = this.button.querySelector('.farming-progress');
-        const progress = (elapsedTime / this.farmingDuration) * 100;
-        progressBar.style.width = `${progress}%`;
-
-        const remainingTime = this.farmingDuration - elapsedTime;
-        
-        this.farmingTimeout = setTimeout(() => {
-            this.completeFarming();
-        }, remainingTime);
-
-        this.farmingInterval = setInterval(() => {
-            const now = Date.now();
-            const currentElapsed = now - this.startTime;
-            
-            if (currentElapsed >= this.farmingDuration) {
-                clearInterval(this.farmingInterval);
-                return;
-            }
-
-            const earnRate = this.rewardAmount / this.farmingDuration;
-            const totalEarned = earnRate * currentElapsed;
-            
-            this.limeAmount = this.baseAmount + totalEarned;
-            
-            this.updateLimeDisplay();
-            this.levelSystem.addXp(totalEarned * 0.1);
-
-            const progress = (currentElapsed / this.farmingDuration) * 100;
-            progressBar.style.width = `${progress}%`;
-            
-            this.buttonContent.textContent = `Farming: ${this.formatTime(this.farmingDuration - currentElapsed)}`;
-        }, 50);
-
-        this.saveInterval = setInterval(() => {
-            if (this.isActive) {
-                this.saveUserData(this.limeAmount);
-            }
-        }, 5000);
-    }
-    startFarming() {
-        this.isActive = true;
-        this.farmingCount++;
-        this.startTime = Date.now();
-        this.baseAmount = this.limeAmount;
-        this.resumeFarming(0);
-        this.saveUserData(this.limeAmount);
-        showToast('Farming started! Come back in 30 seconds');
-    }
-
-    async completeFarming() {
-        if (!this.isActive) return;
-
-        this.isActive = false;
-
-        if (this.farmingInterval) {
-            clearInterval(this.farmingInterval);
-            this.farmingInterval = null;
-        }
-        if (this.saveInterval) {
-            clearInterval(this.saveInterval);
-            this.saveInterval = null;
-        }
-        if (this.farmingTimeout) {
-            clearTimeout(this.farmingTimeout);
-            this.farmingTimeout = null;
-        }
-        
-        const totalElapsed = Date.now() - this.startTime;
-        const earnRate = this.rewardAmount / this.farmingDuration;
-        const totalEarned = earnRate * Math.min(totalElapsed, this.farmingDuration);
-        this.limeAmount = this.baseAmount + totalEarned;
-        
-        this.startTime = null;
-        this.button.classList.remove('disabled');
-        this.buttonContent.textContent = 'Start Farming';
-        
-        const progressBar = this.button.querySelector('.farming-progress');
-        if (progressBar) {
-            progressBar.remove();
-        }
-
-        try {
-            const response = await fetch(`${API_URL}/api/users/${this.userId}/complete-farming`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    limeAmount: this.limeAmount,
-                    farmingCount: this.farmingCount,
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to complete farming');
-            }
-
-            showToast('Farming completed!');
-        } catch (error) {
-            console.error('Error completing farming:', error);
-            await this.saveUserData(this.limeAmount);
-        }
-    }
-
-    formatTime(ms) {
-        const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-        return `${seconds} seconds`;
-    }
-
-    updateLimeDisplay() {
-        const limeAmountElement = document.querySelector('.lime-amount');
-        const formattedNumber = this.limeAmount.toFixed(5);
-        
-        if (limeAmountElement.textContent !== formattedNumber) {
-            limeAmountElement.classList.remove('number-change');
-            void limeAmountElement.offsetWidth;
-            limeAmountElement.classList.add('number-change');
-            
-            const statValues = document.querySelectorAll('.stat-value');
-            statValues.forEach(stat => {
-                stat.classList.remove('updating');
-                void stat.offsetWidth;
-                stat.classList.add('updating');
-            });
-        }
-        
-        limeAmountElement.textContent = formattedNumber;
-    }
-
-    async saveUserData(exactAmount = null) {
-        if (!this.userId) return;
-        
-        try {
-            const response = await fetch(`${API_URL}/api/users/${this.userId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    limeAmount: exactAmount !== null ? exactAmount : this.limeAmount,
-                    farmingCount: this.farmingCount,
-                    isActive: this.isActive,
-                    startTime: this.startTime ? new Date(this.startTime) : null,
-                    level: this.levelSystem.level,
-                    xp: this.levelSystem.xp,
-                    slimeNinjaAttempts: this.slimeNinjaAttempts,
-                    achievements: Object.keys(this.achievementSystem.achievements).reduce((acc, key) => {
-                        acc[key] = this.achievementSystem.achievements[key].completed;
-                        return acc;
-                    }, {})
-                })
-            });
-    
-            if (!response.ok) {
-                throw new Error('Failed to save user data');
-            }
-    
-            const data = await response.json();
-            // Обновляем только те данные, которые могли измениться на сервере
-            this.slimeNinjaAttempts = data.slimeNinjaAttempts;
-            this.updateSlimeNinjaAttempts();
-            
-            return true;
-        } catch (error) {
-            console.error('Error saving user data:', error);
-            return false;
-        }
-    }
-
-    init() {
-        this.button.addEventListener('click', () => {
-            if (!this.isActive) {
-                this.startFarming();
-            }
-        });
-
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                const section = this.dataset.section;
-                
-                // Добавляем класс hidden ко всем секциям
-                document.querySelector('.main-content').classList.add('hidden');
-                document.querySelector('.play-section').classList.add('hidden');
-                document.querySelector('.referrals-section').classList.add('hidden');
-                
-                // Удаляем display: none
-                document.querySelector('.main-content').style.display = '';
-                document.querySelector('.play-section').style.display = '';
-                document.querySelector('.referrals-section').style.display = '';
-                
-                // Небольшая задержка перед показом новой секции
-                setTimeout(() => {
-                    if (section === 'main') {
-                        document.querySelector('.main-content').classList.remove('hidden');
-                        document.querySelector('.play-section').style.display = 'none';
-                        document.querySelector('.referrals-section').style.display = 'none';
-                    } else if (section === 'play') {
-                        document.querySelector('.play-section').classList.remove('hidden');
-                        document.querySelector('.main-content').style.display = 'none';
-                        document.querySelector('.referrals-section').style.display = 'none';
-                    } else if (section === 'referrals') {
-                        document.querySelector('.referrals-section').classList.remove('hidden');
-                        document.querySelector('.main-content').style.display = 'none';
-                        document.querySelector('.play-section').style.display = 'none';
-                        window.farmingSystem.loadReferralData();
-                    }
-                }, 50);
-                
-                // Обновляем активную навигацию
-                document.querySelectorAll('.nav-item').forEach(nav => {
-                    nav.classList.remove('active');
-                });
-                this.classList.add('active');
-            });
-        });
-    
-        document.querySelectorAll('.game-card').forEach((card, index) => {
-            card.style.setProperty('--card-index', index);
-        });
-
-        setInterval(() => {
-            this.syncWithServer();
-        }, 10000);
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                this.syncWithServer();
-            }
-        });
-
-        window.addEventListener('online', () => {
-            this.syncWithServer();
-        });
-
-        setInterval(() => {
-            this.achievementSystem.checkAchievements({
-                limeAmount: this.limeAmount,
-                farmingCount: this.farmingCount,
-                farmingSpeed: 1
-            });
-        }, 1000);
     }
 }
+
 function showToast(message) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
