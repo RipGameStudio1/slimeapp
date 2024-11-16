@@ -820,13 +820,11 @@ canvas {
     transform: translateY(0);
 }
 
-
-/* Toast уведомления */
 .toast {
     position: fixed;
     top: 20px;
     left: 50%;
-    transform: translateX(-50%) translateY(-150%);
+    transform: translateX(-50%) translateY(-300%);
     background: var(--accent-color);
     color: white;
     padding: 12px 24px;
