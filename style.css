@@ -702,27 +702,28 @@ canvas {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 30px;
+    width: 100%; /* Полная ширина для центрирования */
 }
 
 .streak-counter {
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Выравнивание по вертикали */
     justify-content: center;
     align-items: center;
     margin-bottom: 20px;
-    animation: scaleIn 0.5s ease;
+    text-align: center; /* Центрируем текст */
+    width: 100%; /* Обеспечиваем, что контейнер занимает всю ширину */
 }
 
 .day-number {
     font-size: 120px;
     font-weight: bold;
     color: var(--accent-color);
-    display: block;
     line-height: 1;
     animation: pulse 2s infinite;
-    text-align: center; 
-    margin: 0;
+    text-align: center; /* Центрируем цифру */
+    margin: 0; /* Убираем отступы */
+    width: 100%; /* Обеспечиваем, что элемент занимает всю ширину */
 }
 
 .day-text {
@@ -730,7 +731,8 @@ canvas {
     color: var(--text-color);
     text-transform: uppercase;
     margin-top: 10px;
-    text-align: center;
+    text-align: center; /* Центрируем текст */
+    width: 100%; /* Обеспечиваем, что элемент занимает всю ширину */
 }
 
 .streak-description {
