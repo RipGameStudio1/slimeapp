@@ -826,8 +826,8 @@ canvas {
     position: fixed;
     top: 20px;
     left: 50%;
-    transform: translateX(-50%) translateY(-100px);
-    background: var(--primary-color);
+    transform: translateX(-50%) translateY(-150%);
+    background: var(--accent-color);
     color: white;
     padding: 12px 24px;
     border-radius: 50px;
@@ -957,12 +957,20 @@ canvas {
 
 @keyframes floatUp {
     0% {
-        transform: translate(-50%, 0);
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    20% {
         opacity: 1;
+        transform: translate(-50%, 0);
+    }
+    80% {
+        opacity: 1;
+        transform: translate(-50%, 0);
     }
     100% {
-        transform: translate(-50%, -100px);
         opacity: 0;
+        transform: translate(-50%, -20px);
     }
 }
 
@@ -1192,13 +1200,20 @@ canvas {
 .floating-reward {
     position: fixed;
     left: 50%;
-    bottom: 100px;
     transform: translateX(-50%);
     color: var(--accent-color);
     font-size: 24px;
     font-weight: bold;
-    animation: floatUp 2s ease-out forwards;
     z-index: 1000;
+    pointer-events: none;
+}
+
+.floating-reward.lime {
+    bottom: 140px; /* Для $lime */
+}
+
+.floating-reward.attempts {
+    bottom: 180px; /* Для attempts */
 }
 
 /* Улучшенные состояния интерактивных элементов */
