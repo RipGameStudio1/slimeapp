@@ -1158,6 +1158,7 @@
 
 <script>
 let tg = window.Telegram.WebApp;
+let spinBet = 0; // Добавляем переменную для хранения ставки текущего спина
 tg.expand();
 
 const symbols = ['🎰', '💎', '7️⃣', '🌟', '🎲', '🍀', '👑', '🎮'];
@@ -1170,7 +1171,7 @@ let spinsRemaining = 25;
 const INITIAL_SPINS = 25;
 const JACKPOT_BONUS_SPINS = 15;
 const SMALL_WIN_BONUS_SPINS = 1;
-const RESET_DELAY = 45 * 1000; // 45 секунд для тестирования
+const RESET_DELAY = 60 * 1000; // 45 секунд для тестирования
 
 let currentBet = 10;
 const betMultipliers = {
@@ -1255,29 +1256,27 @@ function calculateWinAmount(symbols) {
     const [first, second, third] = symbols;
     
     if (spinsRemaining > 0) {
-        // Джекпот из кубиков
+        // Логика для free spins остается прежней
         if (first === '🎲' && second === '🎲' && third === '🎲') {
             return 1000;
         }
         
-        // Обычный джекпот (3 одинаковых символа)
         if (first === second && second === third) {
             return 100;
         }
         
-        // 2 кубика в ряд
         if ((first === '🎲' && second === '🎲') || (second === '🎲' && third === '🎲')) {
             return 100;
         }
         
-        // Маленький выигрыш (2 одинаковых символа)
         if (first === second || second === third) {
             return 15;
         }
         
         return 0;
     } else {
-        const multiplier = betMultipliers[currentBet.toString()];
+        // Используем сохраненную ставку spinBet вместо currentBet
+        const multiplier = betMultipliers[spinBet.toString()];
         
         if (first === '🎲' && second === '🎲' && third === '🎲') {
             return 1000 * multiplier;
@@ -1651,16 +1650,20 @@ function spin() {
     
     if (spinsRemaining <= 0) {
         if (balance < currentBet) return;
+        spinBet = currentBet; // Сохраняем ставку в момент начала спина
+    } else {
+        spinBet = 0; // Для free spins ставка 0
     }
     
-    document.querySelectorAll('.symbol.winning').forEach(symbol => {
-        symbol.classList.remove('winning');
+    // Блокируем возможность менять ставку во время спина
+    document.querySelectorAll('.bet-option').forEach(btn => {
+        btn.disabled = true;
     });
     
     if (spinsRemaining > 0) {
         spinsRemaining--;
     } else {
-        updateBalance(-currentBet);
+        updateBalance(-spinBet);
     }
     
     updateSpinsLeft();
@@ -1732,7 +1735,12 @@ function spin() {
 
     const totalSpinTime = 4500;
     setTimeout(() => {
-        isSpinning = false;
+		isSpinning = false;
+		
+		// Разблокируем кнопки ставок
+		document.querySelectorAll('.bet-option').forEach(btn => {
+			btn.disabled = false;
+		});
         
         if (!isAutoSpinning) {
             if (spinsRemaining > 0 || balance >= currentBet) {
