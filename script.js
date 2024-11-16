@@ -180,15 +180,35 @@ class AchievementSystem {
         const achievement = this.achievements[id];
         if (!achievement.completed) {
             achievement.completed = true;
-            showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
             
+            // Добавляем визуальную индикацию
             const card = document.querySelector(`[data-id="${achievement.id}"]`);
             if (card) {
                 card.classList.add('completed');
+                card.classList.add('just-completed'); // Добавляем класс для анимации
+                setTimeout(() => {
+                    card.classList.remove('just-completed');
+                }, 1000);
             }
+
+            // Показываем уведомление
+            showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
+            
+            // Добавляем анимацию
+            this.animateAchievement(achievement);
         }
     }
-
+    
+    animateAchievement(achievement) {
+        const card = document.querySelector(`[data-id="${achievement.id}"]`);
+        if (card) {
+            card.style.animation = 'achievementUnlock 0.5s ease';
+            setTimeout(() => {
+                card.style.animation = '';
+            }, 500);
+        }
+    }
+    
     updateDisplay() {
         Object.keys(this.achievements).forEach(key => {
             const achievement = this.achievements[key];
@@ -587,21 +607,63 @@ class FarmingSystem {
         if (progressBar) {
             progressBar.remove();
         }
-    
+
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
         }
-    
-        // Обновляем финальные данные
+
+        // Обновляем все данные
         this.limeAmount = parseFloat(data.limeAmount);
         this.levelSystem.xp = data.xp;
         this.levelSystem.level = data.level;
+        
+        // Проверяем достижения
+        this.checkAchievements();
         
         this.updateAllDisplays();
         showToast('Farming completed!');
     }
 
+    checkAchievements() {
+        // Проверка первого фарминга
+        if (!this.achievementSystem.achievements.firstFarm.completed) {
+            this.achievementSystem.unlockAchievement('firstFarm');
+            this.saveAchievements();
+        }
+
+        // Проверка достижения миллионера
+        if (!this.achievementSystem.achievements.millionaire.completed && this.limeAmount >= 1000000) {
+            this.achievementSystem.unlockAchievement('millionaire');
+            this.saveAchievements();
+        }
+
+        // Проверка скорости (если есть такая механика)
+        if (!this.achievementSystem.achievements.speedDemon.completed && this.getFarmingSpeed() >= 2) {
+            this.achievementSystem.unlockAchievement('speedDemon');
+            this.saveAchievements();
+        }
+    }
+    async saveAchievements() {
+        try {
+            const achievements = Object.keys(this.achievementSystem.achievements).reduce((acc, key) => {
+                acc[key] = this.achievementSystem.achievements[key].completed;
+                return acc;
+            }, {});
+
+            await fetch(`${API_URL}/api/users/${this.userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    achievements: achievements
+                })
+            });
+        } catch (error) {
+            console.error('Error saving achievements:', error);
+        }
+    }
     updateAllData(data) {
         this.limeAmount = parseFloat(data.limeAmount);
         this.levelSystem.level = data.level;
