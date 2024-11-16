@@ -999,10 +999,6 @@ canvas {
     background: rgba(255, 255, 255, 0.05);
 }
 
-[data-theme="dark"] .rewards-container {
-    background: rgba(255, 255, 255, 0.05);
-}
-
 /* Медиа-запросы */
 @media (max-width: 480px) {
     .container {
