@@ -130,7 +130,7 @@ class LevelSystem {
         
         this.levelElement.textContent = this.level;
         this.speedElement.textContent = '1x';
-        this.progressElement.style.width = `${progress}%`;
+        this.progressElement.style.width = `${Math.min(progress, 100)}%`;
     }
 }
 class AchievementSystem {
@@ -492,9 +492,8 @@ class FarmingSystem {
         
         this.updateInterval = setInterval(async () => {
             await this.updateFromServer();
-        }, 50);
+        }, 50); 
     }
-
     async updateFromServer() {
         try {
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
@@ -525,9 +524,22 @@ class FarmingSystem {
         const remainingSeconds = Math.ceil(30 - (progress.progress * 0.3));
         this.buttonContent.textContent = `Farming: ${remainingSeconds} seconds`;
         
-        if (progress.earned) {
+        // Обновляем текущий баланс
+        if (progress.earned !== undefined) {
             this.limeAmount = parseFloat(progress.earned);
             this.updateLimeDisplay();
+        }
+    
+        // Обновляем текущий опыт
+        if (progress.currentXp !== undefined) {
+            this.levelSystem.xp = progress.currentXp;
+            this.levelSystem.updateDisplay();
+            
+            // Проверяем уровень
+            const requiredXp = this.levelSystem.calculateXpForLevel(this.levelSystem.level);
+            if (this.levelSystem.xp >= requiredXp) {
+                this.levelSystem.levelUp();
+            }
         }
     }
 
@@ -540,13 +552,18 @@ class FarmingSystem {
         if (progressBar) {
             progressBar.remove();
         }
-
+    
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
         }
-
-        this.updateAllData(data);
+    
+        // Обновляем все данные
+        this.limeAmount = parseFloat(data.limeAmount);
+        this.levelSystem.xp = data.xp;
+        this.levelSystem.level = data.level;
+        
+        this.updateAllDisplays();
         showToast('Farming completed!');
     }
 
