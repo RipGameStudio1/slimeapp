@@ -380,23 +380,16 @@ class DailyRewardSystem {
         limeText.style.animation = 'floatUp 2s ease-out forwards';
         document.body.appendChild(limeText);
     
-        setTimeout(() => {
-            const attemptsText = document.createElement('div');
-            attemptsText.className = 'floating-reward attempts';
-            attemptsText.textContent = `+${attempts} attempts`;
-            attemptsText.style.animation = 'floatUp 2s ease-out forwards';
-            document.body.appendChild(attemptsText);
-        }, 200);
+        const attemptsText = document.createElement('div');
+        attemptsText.className = 'floating-reward attempts';
+        attemptsText.textContent = `+${attempts} attempts`;
+        attemptsText.style.animation = 'floatUp 2s ease-out forwards';
+        document.body.appendChild(attemptsText);
     
         setTimeout(() => {
             limeText.remove();
+            attemptsText.remove();
         }, 2000);
-    
-        setTimeout(() => {
-            if (document.body.contains(attemptsText)) {
-                attemptsText.remove();
-            }
-        }, 2200);
     }
 
     initAnimations() {
@@ -624,7 +617,50 @@ class FarmingSystem {
         this.updateAllDisplays();
         showToast('Farming completed!');
     }
-
+    async saveAchievements() {
+        try {
+            const achievements = {};
+            Object.keys(this.achievementSystem.achievements).forEach(key => {
+                achievements[key] = this.achievementSystem.achievements[key].completed;
+            });
+            
+            const response = await fetch(`${API_URL}/api/users/${this.userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ achievements })
+            });
+    
+            if (!response.ok) throw new Error('Failed to save achievements');
+            
+            const data = await response.json();
+            console.log('Achievements saved:', data.achievements);
+        } catch (error) {
+            console.error('Error saving achievements:', error);
+        }
+    }
+    async updateAttempts(newAttempts) {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${this.userId}/update-attempts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ attempts: newAttempts })
+            });
+    
+            if (!response.ok) throw new Error('Failed to update attempts');
+            
+            const data = await response.json();
+            this.slimeNinjaAttempts = data.attempts;
+            this.updateSlimeNinjaAttempts();
+            return true;
+        } catch (error) {
+            console.error('Error updating attempts:', error);
+            return false;
+        }
+    }
     checkAchievements() {
         console.log('Checking achievements...'); // Для отладки
         console.log('Current achievements:', this.achievementSystem.achievements); // Для отладки
@@ -645,45 +681,11 @@ class FarmingSystem {
             achievementsChanged = true;
         }
     
-        // Проверка скорости
-        if (!this.achievementSystem.achievements.speedDemon.completed && this.getFarmingSpeed() >= 2) {
-            console.log('Unlocking speedDemon achievement'); // Для отладки
-            this.achievementSystem.unlockAchievement('speedDemon');
-            achievementsChanged = true;
-        }
-    
         if (achievementsChanged) {
-            console.log('Achievements changed, saving...'); // Для отладки
             this.saveAchievements();
         }
     }
-    async saveAchievements() {
-        try {
-            const achievements = {};
-            Object.keys(this.achievementSystem.achievements).forEach(key => {
-                achievements[key] = this.achievementSystem.achievements[key].completed;
-            });
     
-            const response = await fetch(`${API_URL}/api/users/${this.userId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    achievements: achievements
-                })
-            });
-    
-            if (!response.ok) {
-                throw new Error('Failed to save achievements');
-            }
-    
-            const data = await response.json();
-            console.log('Achievements saved:', data.achievements); // Для отладки
-        } catch (error) {
-            console.error('Error saving achievements:', error);
-        }
-    }
     updateAllData(data) {
         this.limeAmount = parseFloat(data.limeAmount);
         this.levelSystem.level = data.level;
@@ -699,7 +701,9 @@ class FarmingSystem {
         this.updateSlimeNinjaAttempts();
         this.achievementSystem.updateDisplay();
     }
-
+    getFarmingSpeed() {
+        return 1;
+    }
     updateLimeDisplay() {
         const limeAmountElement = document.querySelector('.lime-amount');
         const formattedNumber = this.limeAmount.toFixed(5);
