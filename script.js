@@ -176,26 +176,44 @@ class AchievementSystem {
         }
     }
 
-    unlockAchievement(id) {
+    async unlockAchievement(id) {
         const achievement = this.achievements[id];
         if (!achievement.completed) {
             achievement.completed = true;
             
-            // Добавляем визуальную индикацию
-            const card = document.querySelector(`[data-id="${achievement.id}"]`);
-            if (card) {
-                card.classList.add('completed');
-                card.classList.add('just-completed'); // Добавляем класс для анимации
-                setTimeout(() => {
-                    card.classList.remove('just-completed');
-                }, 1000);
+            // Немедленно сохраняем в базу данных
+            try {
+                const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        achievements: {
+                            [id]: true
+                        }
+                    })
+                });
+    
+                if (!response.ok) throw new Error('Failed to save achievement');
+    
+                const card = document.querySelector(`[data-id="${achievement.id}"]`);
+                if (card) {
+                    card.classList.add('completed');
+                    card.classList.add('just-completed');
+                    setTimeout(() => {
+                        card.classList.remove('just-completed');
+                    }, 1000);
+                }
+                
+                showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
+                this.animateAchievement(achievement);
+            } catch (error) {
+                console.error('Error saving achievement:', error);
+                // Откатываем изменение если сохранение не удалось
+                achievement.completed = false;
+                showToast('Failed to save achievement. Please try again.');
             }
-
-            // Показываем уведомление
-            showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
-            
-            // Добавляем анимацию
-            this.animateAchievement(achievement);
         }
     }
     
@@ -661,28 +679,21 @@ class FarmingSystem {
             return false;
         }
     }
-    checkAchievements() {
-        console.log('Checking achievements...'); // Для отладки
-        console.log('Current achievements:', this.achievementSystem.achievements); // Для отладки
+    async checkAchievements() {
+        try {
+            if (!this.achievementSystem.achievements.firstFarm.completed) {
+                await this.achievementSystem.unlockAchievement('firstFarm');
+            }
     
-        let achievementsChanged = false;
+            if (!this.achievementSystem.achievements.millionaire.completed && this.limeAmount >= 1000000) {
+                await this.achievementSystem.unlockAchievement('millionaire');
+            }
     
-        // Проверка первого фарминга
-        if (!this.achievementSystem.achievements.firstFarm.completed) {
-            console.log('Unlocking firstFarm achievement'); // Для отладки
-            this.achievementSystem.unlockAchievement('firstFarm');
-            achievementsChanged = true;
-        }
-    
-        // Проверка достижения миллионера
-        if (!this.achievementSystem.achievements.millionaire.completed && this.limeAmount >= 1000000) {
-            console.log('Unlocking millionaire achievement'); // Для отладки
-            this.achievementSystem.unlockAchievement('millionaire');
-            achievementsChanged = true;
-        }
-    
-        if (achievementsChanged) {
-            this.saveAchievements();
+            if (!this.achievementSystem.achievements.speedDemon.completed && this.getFarmingSpeed() >= 2) {
+                await this.achievementSystem.unlockAchievement('speedDemon');
+            }
+        } catch (error) {
+            console.error('Error checking achievements:', error);
         }
     }
     
