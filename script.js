@@ -310,42 +310,50 @@ class DailyRewardSystem {
         try {
             this.claimButton.disabled = true;
             this.claimButton.textContent = 'Получение...';
-            
+    
             const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}/daily-reward`, {
-                method: 'POST'
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
-            
-            if (!response.ok) throw new Error('Failed to claim reward');
-            
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to claim reward');
+            }
+    
             const result = await response.json();
-            
-            const flash = document.createElement('div');
-            flash.className = 'reward-flash';
-            this.modal.appendChild(flash);
-            
-            window.farmingSystem.limeAmount = result.totalLime;
-            window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
-            window.farmingSystem.updateLimeDisplay();
-            window.farmingSystem.updateSlimeNinjaAttempts();
-            
-            showToast(`Получено: ${result.limeReward} $lime и ${result.attemptsReward} попыток!`);
-            
-            this.createStarRain();
-            
-            this.modal.style.animation = 'modalClose 0.5s ease forwards';
-            
-            setTimeout(() => {
-                this.modal.style.display = 'none';
-                this.modal.style.animation = '';
-                document.body.style.overflow = 'auto';
-                flash.remove();
-            }, 500);
-            
-            this.animateRewardClaim(result.limeReward, result.attemptsReward);
-            
+    
+            if (result.success) {
+                const flash = document.createElement('div');
+                flash.className = 'reward-flash';
+                this.modal.appendChild(flash);
+    
+                window.farmingSystem.limeAmount = result.totalLime;
+                window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
+                window.farmingSystem.updateLimeDisplay();
+                window.farmingSystem.updateSlimeNinjaAttempts();
+    
+                showToast(`Получено: ${result.limeReward} $lime и ${result.attemptsReward} попыток!`);
+                this.createStarRain();
+    
+                this.modal.style.animation = 'modalClose 0.5s ease forwards';
+                setTimeout(() => {
+                    this.modal.style.display = 'none';
+                    this.modal.style.animation = '';
+                    document.body.style.overflow = 'auto';
+                    flash.remove();
+                }, 500);
+    
+                this.animateRewardClaim(result.limeReward, result.attemptsReward);
+            } else {
+                throw new Error('Failed to claim reward');
+            }
         } catch (error) {
             console.error('Error claiming reward:', error);
-            showToast('Failed to claim reward. Please try again.');
+            showToast(error.message || 'Failed to claim reward. Please try again.');
+        } finally {
             this.claimButton.disabled = false;
             this.claimButton.textContent = 'Получить награду';
         }
