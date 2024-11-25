@@ -464,10 +464,18 @@ class FarmingSystem {
     async loadUserData() {
         showLoadingIndicator();
         try {
+            console.log('Starting user data load for userId:', this.userId);
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
-            if (!response.ok) throw new Error('Failed to load user data');
+            console.log('Response status:', response.status);
             
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Error details:', errorData);
+                throw new Error(`Failed to load user data: ${errorData.error || 'Unknown error'}`);
+            }
+    
             const userData = await response.json();
+            console.log('Received user data:', userData);
             
             this.limeAmount = parseFloat(userData.limeAmount);
             this.isActive = userData.isActive;
@@ -492,8 +500,11 @@ class FarmingSystem {
             this.dailyRewardSystem.checkDailyReward();
             this.init();
         } catch (error) {
-            console.error('Error loading user data:', error);
-            showToast('Failed to load user data');
+            console.error('Error loading user data:', {
+                message: error.message,
+                stack: error.stack
+            });
+            showToast(`Error loading user data: ${error.message}`);
         } finally {
             hideLoadingIndicator();
         }
