@@ -160,63 +160,51 @@ class AchievementSystem {
         };
     }
 
-    checkAchievements(stats) {
-        const { limeAmount, farmingCount, farmingSpeed } = stats;
-        
-        if (!this.achievements.firstFarm.completed && farmingCount > 0) {
-            this.unlockAchievement('firstFarm');
-        }
-        
-        if (!this.achievements.speedDemon.completed && farmingSpeed >= 2) {
-            this.unlockAchievement('speedDemon');
-        }
-        
-        if (!this.achievements.millionaire.completed && limeAmount >= 1000000) {
-            this.unlockAchievement('millionaire');
+    async checkNewAchievements(newAchievements) {
+        if (!newAchievements || !Array.isArray(newAchievements)) return;
+
+        for (const achievementId of newAchievements) {
+            if (this.achievements[achievementId] && !this.achievements[achievementId].completed) {
+                await this.unlockAchievement(achievementId);
+            }
         }
     }
 
     async unlockAchievement(id) {
         const achievement = this.achievements[id];
-        if (!achievement.completed) {
-            achievement.completed = true;
-            
-            // Немедленно сохраняем в базу данных
-            try {
-                const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        achievements: {
-                            [id]: true
-                        }
-                    })
-                });
-    
-                if (!response.ok) throw new Error('Failed to save achievement');
-    
-                const card = document.querySelector(`[data-id="${achievement.id}"]`);
-                if (card) {
-                    card.classList.add('completed');
-                    card.classList.add('just-completed');
-                    setTimeout(() => {
-                        card.classList.remove('just-completed');
-                    }, 1000);
-                }
-                
-                showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
-                this.animateAchievement(achievement);
-            } catch (error) {
-                console.error('Error saving achievement:', error);
-                // Откатываем изменение если сохранение не удалось
-                achievement.completed = false;
-                showToast('Failed to save achievement. Please try again.');
-            }
+        if (!achievement || achievement.completed) return;
+
+        achievement.completed = true;
+        
+        const card = document.querySelector(`[data-id="${achievement.id}"]`);
+        if (card) {
+            card.classList.add('completed');
+            card.classList.add('just-completed');
+            setTimeout(() => {
+                card.classList.remove('just-completed');
+            }, 1000);
+        }
+
+        showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
+        this.animateAchievement(achievement);
+
+        try {
+            await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    achievements: {
+                        [id]: true
+                    }
+                })
+            });
+        } catch (error) {
+            console.error('Error saving achievement:', error);
         }
     }
-    
+
     animateAchievement(achievement) {
         const card = document.querySelector(`[data-id="${achievement.id}"]`);
         if (card) {
@@ -226,7 +214,7 @@ class AchievementSystem {
             }, 500);
         }
     }
-    
+
     updateDisplay() {
         Object.keys(this.achievements).forEach(key => {
             const achievement = this.achievements[key];
@@ -527,14 +515,19 @@ class FarmingSystem {
             if (!response.ok) throw new Error('Failed to start farming');
             
             const data = await response.json();
+            
             this.isActive = true;
             this.button.classList.add('disabled');
             
-            // Создаем прогресс-бар
             if (!this.button.querySelector('.farming-progress')) {
                 const progressBar = document.createElement('div');
                 progressBar.classList.add('farming-progress');
                 this.button.insertBefore(progressBar, this.buttonContent);
+            }
+            
+            // Проверяем новые достижения
+            if (data.newAchievements && data.newAchievements.length > 0) {
+                await this.achievementSystem.checkNewAchievements(data.newAchievements);
             }
             
             this.startUpdates();
