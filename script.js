@@ -597,6 +597,27 @@ class FarmingSystem {
             }
         }
     }
+    async updateAttempts(newAttempts) {
+        try {
+            const response = await fetch(`${API_URL}/api/users/${this.userId}/update-attempts`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ attempts: newAttempts })
+            });
+            
+            if (!response.ok) throw new Error('Failed to update attempts');
+            
+            const data = await response.json();
+            this.slimeNinjaAttempts = data.attempts;
+            this.updateSlimeNinjaAttempts();
+            return true;
+        } catch (error) {
+            console.error('Error updating attempts:', error);
+            return false;
+        }
+    }
 
     async completeFarming(data) {
         this.isActive = false;
@@ -625,37 +646,51 @@ class FarmingSystem {
         showToast('Farming completed!');
     }
 
-    checkAchievements() {
-        console.log('Checking achievements...'); // Для отладки
-        console.log('Current achievements:', this.achievementSystem.achievements); // Для отладки
-    
+    async checkAchievements() {
+        console.log('Checking achievements...'); 
         let achievementsChanged = false;
-    
-        // Проверка первого фарминга
+        
         if (!this.achievementSystem.achievements.firstFarm.completed) {
-            console.log('Unlocking firstFarm achievement'); // Для отладки
             this.achievementSystem.unlockAchievement('firstFarm');
             achievementsChanged = true;
         }
-    
-        // Проверка достижения миллионера
+        
         if (!this.achievementSystem.achievements.millionaire.completed && this.limeAmount >= 1000000) {
-            console.log('Unlocking millionaire achievement'); // Для отладки
             this.achievementSystem.unlockAchievement('millionaire');
             achievementsChanged = true;
         }
-    
-        // Проверка скорости
+        
         if (!this.achievementSystem.achievements.speedDemon.completed && this.getFarmingSpeed() >= 2) {
-            console.log('Unlocking speedDemon achievement'); // Для отладки
             this.achievementSystem.unlockAchievement('speedDemon');
             achievementsChanged = true;
         }
-    
+        
         if (achievementsChanged) {
-            console.log('Achievements changed, saving...'); // Для отладки
-            this.saveAchievements();
+            try {
+                const achievements = {};
+                Object.keys(this.achievementSystem.achievements).forEach(key => {
+                    achievements[key] = this.achievementSystem.achievements[key].completed;
+                });
+                
+                const response = await fetch(`${API_URL}/api/users/${this.userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ achievements })
+                });
+                
+                if (!response.ok) throw new Error('Failed to save achievements');
+                
+                const data = await response.json();
+                console.log('Achievements saved:', data.achievements);
+            } catch (error) {
+                console.error('Error saving achievements:', error);
+            }
         }
+    }
+    getFarmingSpeed() {
+        return this.levelSystem.getMultiplier();
     }
     async saveAchievements() {
         try {
