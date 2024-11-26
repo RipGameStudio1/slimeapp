@@ -160,51 +160,45 @@ class AchievementSystem {
         };
     }
 
-    async checkNewAchievements(newAchievements) {
-        if (!newAchievements || !Array.isArray(newAchievements)) return;
-
-        for (const achievementId of newAchievements) {
-            if (this.achievements[achievementId] && !this.achievements[achievementId].completed) {
-                await this.unlockAchievement(achievementId);
-            }
-        }
-    }
-
-    async unlockAchievement(id) {
-        const achievement = this.achievements[id];
-        if (!achievement || achievement.completed) return;
-
-        achievement.completed = true;
+    checkAchievements(stats) {
+        const { limeAmount, farmingCount, farmingSpeed } = stats;
         
-        const card = document.querySelector(`[data-id="${achievement.id}"]`);
-        if (card) {
-            card.classList.add('completed');
-            card.classList.add('just-completed');
-            setTimeout(() => {
-                card.classList.remove('just-completed');
-            }, 1000);
+        if (!this.achievements.firstFarm.completed && farmingCount > 0) {
+            this.unlockAchievement('firstFarm');
         }
-
-        showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
-        this.animateAchievement(achievement);
-
-        try {
-            await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    achievements: {
-                        [id]: true
-                    }
-                })
-            });
-        } catch (error) {
-            console.error('Error saving achievement:', error);
+        
+        if (!this.achievements.speedDemon.completed && farmingSpeed >= 2) {
+            this.unlockAchievement('speedDemon');
+        }
+        
+        if (!this.achievements.millionaire.completed && limeAmount >= 1000000) {
+            this.unlockAchievement('millionaire');
         }
     }
 
+    unlockAchievement(id) {
+        const achievement = this.achievements[id];
+        if (!achievement.completed) {
+            achievement.completed = true;
+            
+            // Добавляем визуальную индикацию
+            const card = document.querySelector(`[data-id="${achievement.id}"]`);
+            if (card) {
+                card.classList.add('completed');
+                card.classList.add('just-completed'); // Добавляем класс для анимации
+                setTimeout(() => {
+                    card.classList.remove('just-completed');
+                }, 1000);
+            }
+
+            // Показываем уведомление
+            showToast(`🏆 Achievement unlocked: ${achievement.title}!`);
+            
+            // Добавляем анимацию
+            this.animateAchievement(achievement);
+        }
+    }
+    
     animateAchievement(achievement) {
         const card = document.querySelector(`[data-id="${achievement.id}"]`);
         if (card) {
@@ -214,7 +208,7 @@ class AchievementSystem {
             }, 500);
         }
     }
-
+    
     updateDisplay() {
         Object.keys(this.achievements).forEach(key => {
             const achievement = this.achievements[key];
@@ -298,50 +292,42 @@ class DailyRewardSystem {
         try {
             this.claimButton.disabled = true;
             this.claimButton.textContent = 'Получение...';
-    
+            
             const response = await fetch(`${API_URL}/api/users/${window.farmingSystem.userId}/daily-reward`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                method: 'POST'
             });
-    
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to claim reward');
-            }
-    
+            
+            if (!response.ok) throw new Error('Failed to claim reward');
+            
             const result = await response.json();
-    
-            if (result.success) {
-                const flash = document.createElement('div');
-                flash.className = 'reward-flash';
-                this.modal.appendChild(flash);
-    
-                window.farmingSystem.limeAmount = result.totalLime;
-                window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
-                window.farmingSystem.updateLimeDisplay();
-                window.farmingSystem.updateSlimeNinjaAttempts();
-    
-                showToast(`Получено: ${result.limeReward} $lime и ${result.attemptsReward} попыток!`);
-                this.createStarRain();
-    
-                this.modal.style.animation = 'modalClose 0.5s ease forwards';
-                setTimeout(() => {
-                    this.modal.style.display = 'none';
-                    this.modal.style.animation = '';
-                    document.body.style.overflow = 'auto';
-                    flash.remove();
-                }, 500);
-    
-                this.animateRewardClaim(result.limeReward, result.attemptsReward);
-            } else {
-                throw new Error('Failed to claim reward');
-            }
+            
+            const flash = document.createElement('div');
+            flash.className = 'reward-flash';
+            this.modal.appendChild(flash);
+            
+            window.farmingSystem.limeAmount = result.totalLime;
+            window.farmingSystem.slimeNinjaAttempts = result.totalAttempts;
+            window.farmingSystem.updateLimeDisplay();
+            window.farmingSystem.updateSlimeNinjaAttempts();
+            
+            showToast(`Получено: ${result.limeReward} $lime и ${result.attemptsReward} попыток!`);
+            
+            this.createStarRain();
+            
+            this.modal.style.animation = 'modalClose 0.5s ease forwards';
+            
+            setTimeout(() => {
+                this.modal.style.display = 'none';
+                this.modal.style.animation = '';
+                document.body.style.overflow = 'auto';
+                flash.remove();
+            }, 500);
+            
+            this.animateRewardClaim(result.limeReward, result.attemptsReward);
+            
         } catch (error) {
             console.error('Error claiming reward:', error);
-            showToast(error.message || 'Failed to claim reward. Please try again.');
-        } finally {
+            showToast('Failed to claim reward. Please try again.');
             this.claimButton.disabled = false;
             this.claimButton.textContent = 'Получить награду';
         }
@@ -394,16 +380,23 @@ class DailyRewardSystem {
         limeText.style.animation = 'floatUp 2s ease-out forwards';
         document.body.appendChild(limeText);
     
-        const attemptsText = document.createElement('div');
-        attemptsText.className = 'floating-reward attempts';
-        attemptsText.textContent = `+${attempts} attempts`;
-        attemptsText.style.animation = 'floatUp 2s ease-out forwards';
-        document.body.appendChild(attemptsText);
+        setTimeout(() => {
+            const attemptsText = document.createElement('div');
+            attemptsText.className = 'floating-reward attempts';
+            attemptsText.textContent = `+${attempts} attempts`;
+            attemptsText.style.animation = 'floatUp 2s ease-out forwards';
+            document.body.appendChild(attemptsText);
+        }, 200);
     
         setTimeout(() => {
             limeText.remove();
-            attemptsText.remove();
         }, 2000);
+    
+        setTimeout(() => {
+            if (document.body.contains(attemptsText)) {
+                attemptsText.remove();
+            }
+        }, 2200);
     }
 
     initAnimations() {
@@ -460,18 +453,10 @@ class FarmingSystem {
     async loadUserData() {
         showLoadingIndicator();
         try {
-            console.log('Starting user data load for userId:', this.userId);
             const response = await fetch(`${API_URL}/api/users/${this.userId}`);
-            console.log('Response status:', response.status);
+            if (!response.ok) throw new Error('Failed to load user data');
             
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Error details:', errorData);
-                throw new Error(`Failed to load user data: ${errorData.error || 'Unknown error'}`);
-            }
-    
             const userData = await response.json();
-            console.log('Received user data:', userData);
             
             this.limeAmount = parseFloat(userData.limeAmount);
             this.isActive = userData.isActive;
@@ -496,11 +481,8 @@ class FarmingSystem {
             this.dailyRewardSystem.checkDailyReward();
             this.init();
         } catch (error) {
-            console.error('Error loading user data:', {
-                message: error.message,
-                stack: error.stack
-            });
-            showToast(`Error loading user data: ${error.message}`);
+            console.error('Error loading user data:', error);
+            showToast('Failed to load user data');
         } finally {
             hideLoadingIndicator();
         }
@@ -515,19 +497,14 @@ class FarmingSystem {
             if (!response.ok) throw new Error('Failed to start farming');
             
             const data = await response.json();
-            
             this.isActive = true;
             this.button.classList.add('disabled');
             
+            // Создаем прогресс-бар
             if (!this.button.querySelector('.farming-progress')) {
                 const progressBar = document.createElement('div');
                 progressBar.classList.add('farming-progress');
                 this.button.insertBefore(progressBar, this.buttonContent);
-            }
-            
-            // Проверяем новые достижения
-            if (data.newAchievements && data.newAchievements.length > 0) {
-                await this.achievementSystem.checkNewAchievements(data.newAchievements);
             }
             
             this.startUpdates();
@@ -647,68 +624,66 @@ class FarmingSystem {
         this.updateAllDisplays();
         showToast('Farming completed!');
     }
+
+    checkAchievements() {
+        console.log('Checking achievements...'); // Для отладки
+        console.log('Current achievements:', this.achievementSystem.achievements); // Для отладки
+    
+        let achievementsChanged = false;
+    
+        // Проверка первого фарминга
+        if (!this.achievementSystem.achievements.firstFarm.completed) {
+            console.log('Unlocking firstFarm achievement'); // Для отладки
+            this.achievementSystem.unlockAchievement('firstFarm');
+            achievementsChanged = true;
+        }
+    
+        // Проверка достижения миллионера
+        if (!this.achievementSystem.achievements.millionaire.completed && this.limeAmount >= 1000000) {
+            console.log('Unlocking millionaire achievement'); // Для отладки
+            this.achievementSystem.unlockAchievement('millionaire');
+            achievementsChanged = true;
+        }
+    
+        // Проверка скорости
+        if (!this.achievementSystem.achievements.speedDemon.completed && this.getFarmingSpeed() >= 2) {
+            console.log('Unlocking speedDemon achievement'); // Для отладки
+            this.achievementSystem.unlockAchievement('speedDemon');
+            achievementsChanged = true;
+        }
+    
+        if (achievementsChanged) {
+            console.log('Achievements changed, saving...'); // Для отладки
+            this.saveAchievements();
+        }
+    }
     async saveAchievements() {
         try {
             const achievements = {};
             Object.keys(this.achievementSystem.achievements).forEach(key => {
                 achievements[key] = this.achievementSystem.achievements[key].completed;
             });
-            
+    
             const response = await fetch(`${API_URL}/api/users/${this.userId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ achievements })
+                body: JSON.stringify({
+                    achievements: achievements
+                })
             });
     
-            if (!response.ok) throw new Error('Failed to save achievements');
-            
+            if (!response.ok) {
+                throw new Error('Failed to save achievements');
+            }
+    
             const data = await response.json();
-            console.log('Achievements saved:', data.achievements);
+            console.log('Achievements saved:', data.achievements); // Для отладки
         } catch (error) {
             console.error('Error saving achievements:', error);
         }
     }
-    async updateAttempts(newAttempts) {
-        try {
-            const response = await fetch(`${API_URL}/api/users/${this.userId}/update-attempts`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ attempts: newAttempts })
-            });
-    
-            if (!response.ok) throw new Error('Failed to update attempts');
-            
-            const data = await response.json();
-            this.slimeNinjaAttempts = data.attempts;
-            this.updateSlimeNinjaAttempts();
-            return true;
-        } catch (error) {
-            console.error('Error updating attempts:', error);
-            return false;
-        }
-    }
-    async checkAchievements() {
-        try {
-            if (!this.achievementSystem.achievements.firstFarm.completed) {
-                await this.achievementSystem.unlockAchievement('firstFarm');
-            }
-    
-            if (!this.achievementSystem.achievements.millionaire.completed && this.limeAmount >= 1000000) {
-                await this.achievementSystem.unlockAchievement('millionaire');
-            }
-    
-            if (!this.achievementSystem.achievements.speedDemon.completed && this.getFarmingSpeed() >= 2) {
-                await this.achievementSystem.unlockAchievement('speedDemon');
-            }
-        } catch (error) {
-            console.error('Error checking achievements:', error);
-        }
-    }
-    
     updateAllData(data) {
         this.limeAmount = parseFloat(data.limeAmount);
         this.levelSystem.level = data.level;
@@ -724,9 +699,7 @@ class FarmingSystem {
         this.updateSlimeNinjaAttempts();
         this.achievementSystem.updateDisplay();
     }
-    getFarmingSpeed() {
-        return 1;
-    }
+
     updateLimeDisplay() {
         const limeAmountElement = document.querySelector('.lime-amount');
         const formattedNumber = this.limeAmount.toFixed(5);
