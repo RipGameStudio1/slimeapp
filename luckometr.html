@@ -505,7 +505,7 @@
             transition: all 0.3s ease;
             animation: fadeIn 0.3s ease-in-out;
         }
-
+		
         .timer-text {
             font-size: 16px;
             margin-bottom: 8px;
@@ -621,7 +621,64 @@
 			transform: translateZ(0);
 			background: rgba(255,255,255,0.02);
 		}
+		.loading-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0, 0, 0, 0.8);
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			z-index: 9999;
+		}
 
+		.loading-spinner {
+			width: 50px;
+			height: 50px;
+			border: 5px solid #f3f3f3;
+			border-top: 5px solid var(--primary);
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+		}
+
+		.toast {
+			position: fixed;
+			bottom: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			padding: 12px 24px;
+			border-radius: 8px;
+			color: white;
+			z-index: 10000;
+			animation: fadeInUp 0.3s ease;
+		}
+
+		.toast-error {
+			background: var(--primary);
+		}
+
+		.toast-info {
+			background: var(--accent);
+		}
+
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+
+		@keyframes fadeInUp {
+			from {
+				opacity: 0;
+				transform: translate(-50%, 20px);
+			}
+			to {
+				opacity: 1;
+				transform: translate(-50%, 0);
+			}
+		}
         .symbol:hover {
             transform: scale(1.1);
             background: rgba(255,255,255,0.05);
@@ -1156,10 +1213,29 @@
         </div>
     </div>
 
-<script>
+ <script>
+const API_URL = 'https://neutral-marylou-slimeapp-2e3dcce0.koyeb.app';
 let tg = window.Telegram.WebApp;
-let spinBet = 0; // Добавляем переменную для хранения ставки текущего спина
+let spinBet = 25;
 tg.expand();
+
+// Функция для обработки ответа API
+async function handleApiResponse(response) {
+	if (!response.ok) {
+		const error = await response.json().catch(() => ({}));
+		throw new Error(error.message || 'Network response was not ok');
+	}
+	return response.json();
+}
+
+// Функция для получения заголовков авторизации
+function getAuthHeaders() {
+	return {
+		'Content-Type': 'application/json',
+		'Authorization': `Bearer ${tg.initDataUnsafe.hash}`
+	};
+}
+
 
 const symbols = ['🎰', '💎', '7️⃣', '🌟', '🎲', '🍀', '👑', '🎮'];
 const reels = document.querySelectorAll('.symbols');
@@ -1238,6 +1314,95 @@ function updateBalance(amount) {
     balanceElement.textContent = balance;
     localStorage.setItem('balance', balance.toString());
     updateBetButtons();
+}
+async function initializeUserData() {
+    showLoadingState();
+    try {
+        const response = await fetch(`${API_URL}/api/users/${tg.initDataUnsafe.user.id}`);
+        const userData = await handleApiResponse(response);
+        
+        // Обновляем локальные данные
+        balance = userData.limeAmount;
+        spinsRemaining = userData.slotMachine?.spinsRemaining || INITIAL_SPINS;
+        currentBet = userData.slotMachine?.currentBet || 10;
+        
+        // Обновляем UI
+        updateBalanceDisplay();
+        updateSpinsLeft();
+        updateCurrentBetDisplay();
+        
+        // Проверяем время последней игры
+        if (userData.slotMachine?.lastPlayTime) {
+            checkAndResetSpins(userData.slotMachine.lastPlayTime);
+        }
+        
+        hideLoadingState();
+    } catch (error) {
+        console.error('Error initializing user data:', error);
+        handleError(error);
+        hideLoadingState();
+    }
+}
+function showLoadingState() {
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = `
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    `;
+    document.body.appendChild(loadingOverlay);
+}
+
+function hideLoadingState() {
+    const overlay = document.querySelector('.loading-overlay');
+    if (overlay) {
+        overlay.remove();
+    }
+}
+
+function handleError(error) {
+    const errorMessage = error.message || 'An error occurred';
+    showToast(errorMessage, 'error');
+    console.error(error);
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+async function updateServerBalance(amount) {
+    try {
+        const response = await fetch(`${API_URL}/api/users/${tg.initDataUnsafe.user.id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                limeAmount: balance + amount
+            })
+        });
+        
+        const result = await handleApiResponse(response);
+        balance = result.limeAmount;
+        updateBalanceDisplay();
+        
+        // Анимация изменения баланса
+        showBalanceAnimation(amount);
+        
+    } catch (error) {
+        console.error('Error updating balance:', error);
+        handleError(error);
+    }
+}
+
+function updateBalanceDisplay() {
+    const balanceElement = document.getElementById('balance');
+    balanceElement.textContent = balance.toFixed(2);
+    updateBetButtons(); // Обновляем доступность кнопок ставок
 }
 function toggleBetSelector() {
     const betSelector = document.querySelector('.bet-selector');
@@ -1645,124 +1810,134 @@ function getSymbolHeight() {
     if (width < 1440) return 120;
     return 150;
 }
-function spin() {
-    if (isSpinning) return;
-    
-    if (spinsRemaining <= 0) {
-        if (balance < currentBet) return;
-        spinBet = currentBet; // Сохраняем ставку в момент начала спина
-    } else {
-        spinBet = 0; // Для free spins ставка 0
-    }
-    
-    // Блокируем возможность менять ставку во время спина
-    document.querySelectorAll('.bet-option').forEach(btn => {
-        btn.disabled = true;
-    });
-    
-    if (spinsRemaining > 0) {
-        spinsRemaining--;
-    } else {
-        updateBalance(-spinBet);
-    }
-    
-    updateSpinsLeft();
-    isSpinning = true;
-    
-    const button = document.querySelector('.spin-button');
-    const autoSpinButton = document.querySelector('.auto-spin-button');
-    const result = document.querySelector('.result');
-    
-    if (!isAutoSpinning) {
-        button.disabled = true;
-    }
-    result.textContent = '';
+async function spin() {
+	if (isSpinning) return;
 
-    const symbolHeight = getSymbolHeight();
-    let finalSymbols = determineOutcome();
-    let reelStoppedCount = 0;
+	try {
+		if (spinsRemaining <= 0) {
+			if (balance < currentBet) return;
+			spinBet = currentBet;
+		} else {
+			spinBet = 0;
+		}
 
-    reels.forEach((reel, index) => {
-        addSpinEffect(reel);
-        
-        reel.style.transition = 'none';
-        reel.style.transform = 'translateY(0)';
-        
-        reel.offsetHeight;
-
-        const extraSpins = 2;
-        const totalSymbols = symbols.length;
-        const symbolIndex = symbols.indexOf(finalSymbols[index]);
-        const finalPosition = -(symbolIndex * symbolHeight);
-        const totalDistance = (extraSpins * totalSymbols * symbolHeight) + finalPosition;
-        
-        let spinDuration = 2 + (index * 0.5);
-        let timingFunction = 'cubic-bezier(.17,.67,.12,.99)';
-        
-        const startDelay = index * 400;
-        setTimeout(() => {
-            reel.style.transition = `transform ${spinDuration}s ${timingFunction}`;
-            reel.style.transform = `translateY(${-totalDistance}px)`;
-
-            setTimeout(() => {
-                removeSpinEffect(reel);
-                reelStoppedCount++;
-
-                if (reelStoppedCount === 2) {
-                    const firstSymbol = getVisibleSymbol(reels[0]);
-                    const secondSymbol = getVisibleSymbol(reels[1]);
-
-                    if (firstSymbol === secondSymbol) {
-                        reels[2].style.transition = 'transform 4s cubic-bezier(0.1, 0.7, 0.2, 1)';
-                        
-                        const anticipationEffect = () => {
-                            const lastReel = reels[2].parentElement;
-                            lastReel.classList.add('anticipation');
-                            
-                            setTimeout(() => {
-                                lastReel.classList.remove('anticipation');
-                            }, 500);
-                        };
-
-                        for(let i = 0; i < 3; i++) {
-                            setTimeout(anticipationEffect, i * 600);
-                        }
-                    }
-                }
-            }, spinDuration * 1000);
-        }, startDelay);
-    });
-
-    const totalSpinTime = 4500;
-    setTimeout(() => {
-		isSpinning = false;
-		
-		// Разблокируем кнопки ставок
-		document.querySelectorAll('.bet-option').forEach(btn => {
-			btn.disabled = false;
+		// Начало спина - обновление на сервере
+		const spinResponse = await fetch(`${API_URL}/api/users/${tg.initDataUnsafe.user.id}/slot-spin`, {
+			method: 'POST',
+			headers: getAuthHeaders(),
+			body: JSON.stringify({
+				bet: spinBet,
+				spinsRemaining: spinsRemaining - 1
+			})
 		});
-        
-        if (!isAutoSpinning) {
-            if (spinsRemaining > 0 || balance >= currentBet) {
-                button.disabled = false;
-            } else {
-                button.disabled = true;
-                if (spinsRemaining === 0) {
-                    const result = document.querySelector('.result');
-                    result.innerHTML = `
-                        <div style="animation: fadeIn 0.3s forwards">
-                            Free Spins Ended! Select your bet to continue playing.
-                        </div>`;
-                    result.style.color = '#45B7D1';
-                    stopAutoSpin();
-                }
-            }
-        }
-        
-        checkResult();
-        enableButtons();
-        
-    }, totalSpinTime);
+
+		if (!spinResponse.ok) {
+			throw new Error('Failed to start spin');
+		}
+
+		document.querySelectorAll('.bet-option').forEach(btn => {
+			btn.disabled = true;
+		});
+
+		if (spinsRemaining > 0) {
+			spinsRemaining--;
+		} else {
+			updateBalance(-spinBet);
+		}
+
+		updateSpinsLeft();
+		isSpinning = true;
+
+		const button = document.querySelector('.spin-button');
+		const autoSpinButton = document.querySelector('.auto-spin-button');
+		const result = document.querySelector('.result');
+
+		if (!isAutoSpinning) {
+			button.disabled = true;
+		}
+		result.textContent = '';
+
+		const symbolHeight = getSymbolHeight();
+		let finalSymbols = determineOutcome();
+		let reelStoppedCount = 0;
+
+		reels.forEach((reel, index) => {
+			addSpinEffect(reel);
+			reel.style.transition = 'none';
+			reel.style.transform = 'translateY(0)';
+			reel.offsetHeight;
+
+			const extraSpins = 2;
+			const totalSymbols = symbols.length;
+			const symbolIndex = symbols.indexOf(finalSymbols[index]);
+			const finalPosition = -(symbolIndex * symbolHeight);
+			const totalDistance = (extraSpins * totalSymbols * symbolHeight) + finalPosition;
+			let spinDuration = 2 + (index * 0.5);
+			let timingFunction = 'cubic-bezier(.17,.67,.12,.99)';
+			const startDelay = index * 400;
+
+			setTimeout(() => {
+				reel.style.transition = `transform ${spinDuration}s ${timingFunction}`;
+				reel.style.transform = `translateY(${-totalDistance}px)`;
+
+				setTimeout(() => {
+					removeSpinEffect(reel);
+					reelStoppedCount++;
+
+					if (reelStoppedCount === 2) {
+						const firstSymbol = getVisibleSymbol(reels[0]);
+						const secondSymbol = getVisibleSymbol(reels[1]);
+
+						if (firstSymbol === secondSymbol) {
+							reels[2].style.transition = 'transform 4s cubic-bezier(0.1, 0.7, 0.2, 1)';
+							const anticipationEffect = () => {
+								const lastReel = reels[2].parentElement;
+								lastReel.classList.add('anticipation');
+								setTimeout(() => {
+									lastReel.classList.remove('anticipation');
+								}, 500);
+							};
+
+							for(let i = 0; i < 3; i++) {
+								setTimeout(anticipationEffect, i * 600);
+							}
+						}
+					}
+				}, spinDuration * 1000);
+			}, startDelay);
+		});
+
+		const totalSpinTime = 4500;
+		setTimeout(async () => {
+			isSpinning = false;
+			document.querySelectorAll('.bet-option').forEach(btn => {
+				btn.disabled = false;
+			});
+
+			if (!isAutoSpinning) {
+				if (spinsRemaining > 0 || balance >= currentBet) {
+					button.disabled = false;
+				} else {
+					button.disabled = true;
+					if (spinsRemaining === 0) {
+						const result = document.querySelector('.result');
+						result.innerHTML = `<div style="animation: fadeIn 0.3s forwards">Free Spins Ended! Select your bet to continue playing.</div>`;
+						result.style.color = '#45B7D1';
+						stopAutoSpin();
+					}
+				}
+			}
+
+			await checkResult();
+			enableButtons();
+		}, totalSpinTime);
+
+	} catch (error) {
+		console.error('Error during spin:', error);
+		showToast('Failed to perform spin', 'error');
+		isSpinning = false;
+		enableButtons();
+	}
 }
 function toggleAutoSpin() {
     const autoSpinButton = document.querySelector('.auto-spin-button');
